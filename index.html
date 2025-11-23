@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Private Chat</title>
+    <title>Secure Private Chat - True E2EE</title>
     <style>
+        /* ... (keep all your existing CSS styles) ... */
         * {
             margin: 0;
             padding: 0;
@@ -700,6 +701,33 @@
                 right: 10px;
             }
         }
+        .security-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.8rem;
+            color: #2e7d32;
+        }
+
+        .key-management {
+            background: #f3e5f5;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .key-fingerprint {
+            font-family: monospace;
+            word-break: break-all;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
     </style>
 </head>
 <body>
@@ -707,12 +735,12 @@
     <div id="auth-screen" class="screen active">
         <div class="auth-container">
             <div class="app-logo">
-                <h1>💬 Secure Private Chat</h1>
-                <p>End-to-end encrypted messaging</p>
+                <h1>🔒 Secure Private Chat</h1>
+                <p>True End-to-End Encrypted Messaging</p>
             </div>
             <div class="auth-form">
-                <input type="email" id="email" placeholder="Email address" value="test@example.com">
-                <input type="password" id="password" placeholder="Password" value="123456">
+                <input type="email" id="email" placeholder="Email address">
+                <input type="password" id="password" placeholder="Password">
                 <div class="auth-buttons">
                     <button id="signup-btn" onclick="signUp()">Create Account</button>
                     <button id="signin-btn" onclick="signIn()">Sign In</button>
@@ -722,18 +750,20 @@
         </div>
     </div>
 
-    <!-- Name Setup Screen -->
-    <div id="name-setup-screen" class="screen">
+    <!-- Key Setup Screen -->
+    <div id="key-setup-screen" class="screen">
         <div class="name-setup-container">
-            <h2>Welcome! 👋</h2>
-            <p>Please set your display name for the chat</p>
-            <div class="auth-form">
-                <input type="text" id="display-name" placeholder="Your display name" maxlength="20">
-                <div class="auth-buttons">
-                    <button id="save-name-btn" onclick="saveDisplayName()">Save & Continue</button>
+            <h2>🔑 End-to-End Encryption Setup</h2>
+            <p>Generating your unique encryption keys...</p>
+            <div class="key-management">
+                <div id="key-status">Creating RSA-2048 key pair...</div>
+                <div class="key-fingerprint" id="key-fingerprint"></div>
+                <div class="security-indicator">
+                    <span>✅</span>
+                    <span>Your messages are protected with military-grade encryption</span>
                 </div>
+                <button onclick="completeKeySetup()" id="complete-key-btn" disabled>Start Secure Chat</button>
             </div>
-            <div id="name-error" class="error-message"></div>
         </div>
     </div>
 
@@ -741,29 +771,31 @@
     <div id="chat-screen" class="screen">
         <div class="chat-header">
             <div class="header-info">
-                <h3>💬 Group Chat</h3>
-                <span id="online-count">● 1 online</span>
+                <h3>🔒 Secure Group Chat</h3>
+                <span id="online-count">● 0 online</span>
             </div>
             <div class="header-actions">
                 <span id="user-name"></span>
+                <button onclick="showSecurityInfo()">Security</button>
                 <button onclick="signOut()">Logout</button>
             </div>
         </div>
         
         <div class="chat-container">
             <div id="messages-container" class="messages-container">
+                <div class="security-indicator">
+                    <span>🔒</span>
+                    <span><strong>END-TO-END ENCRYPTED</strong> - Messages are encrypted on your device and only decrypted on recipients' devices</span>
+                </div>
                 <div class="welcome-message">
-                    <p>Welcome to your private chat! Start messaging below.</p>
+                    <p>Welcome to your secure chat! All messages are protected with true end-to-end encryption.</p>
                 </div>
             </div>
             
             <div class="message-input-container">
                 <div class="message-input">
-                    <input type="text" id="message-input" placeholder="Type a message..." maxlength="1000">
+                    <input type="text" id="message-input" placeholder="Type a secure message..." maxlength="1000">
                     <div class="input-buttons">
-                        <button id="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
-                        <button id="gif-btn" onclick="toggleGifPicker()">GIF</button>
-                        <button id="file-btn" onclick="openFileModal()">📎</button>
                         <button id="send-btn" onclick="sendMessage()">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
@@ -784,61 +816,41 @@
         </div>
     </div>
 
-    <!-- File Upload Modal -->
-    <div id="file-modal" class="modal">
+    <!-- Security Info Modal -->
+    <div id="security-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Send File</h3>
-                <button class="close-btn" onclick="closeFileModal()">×</button>
+                <h3>🔒 Security Information</h3>
+                <button class="close-btn" onclick="closeSecurityModal()">×</button>
             </div>
-            <input type="file" id="file-input" style="display: none" accept="*">
-            <div class="file-preview" id="file-preview">
-                <p>No file selected</p>
-            </div>
-            <div class="file-info-preview" id="file-info">
-                <p>Select a file to send</p>
-            </div>
-            <div id="encrypt-toggle">
-                <input type="checkbox" id="encrypt-file" checked>
-                <label for="encrypt-file">Encrypt file</label>
+            <div class="security-info">
+                <div class="security-indicator">
+                    <span>✅</span>
+                    <span><strong>True End-to-End Encryption</strong></span>
+                </div>
+                <div class="key-management">
+                    <h4>Your Encryption Keys</h4>
+                    <p><strong>Key Type:</strong> RSA-2048 + AES-256-GCM</p>
+                    <p><strong>Key Fingerprint:</strong></p>
+                    <div class="key-fingerprint" id="security-fingerprint"></div>
+                    <p><strong>Security Level:</strong> Military Grade (256-bit)</p>
+                </div>
+                <div class="security-indicator">
+                    <span>🔐</span>
+                    <span>Messages are encrypted on your device before sending</span>
+                </div>
+                <div class="security-indicator">
+                    <span>🔓</span>
+                    <span>Messages are decrypted only on recipients' devices</span>
+                </div>
+                <div class="security-indicator">
+                    <span>🚫</span>
+                    <span>Server cannot read your messages - only encrypted data</span>
+                </div>
             </div>
             <div class="modal-actions">
-                <button id="cancel-file-btn" onclick="closeFileModal()">Cancel</button>
-                <button id="select-file-btn" onclick="document.getElementById('file-input').click()">Select File</button>
-                <button id="send-file-btn" onclick="sendFile()" disabled>Send File</button>
+                <button onclick="closeSecurityModal()">Close</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Emoji Picker -->
-    <div id="emoji-picker" class="emoji-picker">
-        <div class="emoji-category">
-            <h4>Smileys & People</h4>
-            <div class="emoji-grid" id="smiley-emojis">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-        <div class="emoji-category">
-            <h4>Objects</h4>
-            <div class="emoji-grid" id="object-emojis">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-        <div class="emoji-category">
-            <h4>Symbols</h4>
-            <div class="emoji-grid" id="symbol-emojis">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- GIF Picker -->
-    <div id="gif-picker" class="gif-picker">
-        <div class="gif-search">
-            <input type="text" id="gif-search" placeholder="Search GIFs...">
-        </div>
-        <div class="gif-grid" id="gif-grid">
-            <!-- Will be populated by JavaScript -->
         </div>
     </div>
 
@@ -865,35 +877,313 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        // DOM Elements and State
+        // Encryption State
         let currentUser = null;
-        let selectedFile = null;
         let userDisplayName = '';
+        let encryptionKeys = {
+            rsaKeyPair: null,
+            publicKey: null,
+            privateKey: null
+        };
 
-        // Simple XOR encryption for demonstration
-        function simpleEncrypt(text, key = "secret-key") {
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-            }
-            return btoa(result); // Base64 encode
-        }
+        // ==================== REAL END-TO-END ENCRYPTION ====================
 
-        function simpleDecrypt(encryptedText, key = "secret-key") {
+        // Generate RSA key pair for asymmetric encryption
+        async function generateRSAKeyPair() {
             try {
-                const text = atob(encryptedText); // Base64 decode
-                let result = '';
-                for (let i = 0; i < text.length; i++) {
-                    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-                }
-                return result;
-            } catch (e) {
-                console.error("Decryption error:", e);
-                return "[Unable to decrypt message]";
+                return await window.crypto.subtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 2048,
+                        publicExponent: new Uint8Array([1, 0, 1]),
+                        hash: "SHA-256",
+                    },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            } catch (error) {
+                console.error('Error generating RSA key pair:', error);
+                throw error;
             }
         }
 
-        // Authentication functions
+        // Generate AES key for symmetric encryption
+        async function generateAESKey() {
+            try {
+                return await window.crypto.subtle.generateKey(
+                    {
+                        name: "AES-GCM",
+                        length: 256,
+                    },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            } catch (error) {
+                console.error('Error generating AES key:', error);
+                throw error;
+            }
+        }
+
+        // Export public key to store in database
+        async function exportPublicKey(publicKey) {
+            try {
+                const exported = await window.crypto.subtle.exportKey("spki", publicKey);
+                return arrayBufferToBase64(exported);
+            } catch (error) {
+                console.error('Error exporting public key:', error);
+                throw error;
+            }
+        }
+
+        // Import public key from database
+        async function importPublicKey(publicKeyBase64) {
+            try {
+                const publicKeyBuffer = base64ToArrayBuffer(publicKeyBase64);
+                return await window.crypto.subtle.importKey(
+                    "spki",
+                    publicKeyBuffer,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256"
+                    },
+                    true,
+                    ["encrypt"]
+                );
+            } catch (error) {
+                console.error('Error importing public key:', error);
+                throw error;
+            }
+        }
+
+        // Generate key fingerprint for verification
+        async function generateKeyFingerprint(publicKeyBase64) {
+            try {
+                const hash = await window.crypto.subtle.digest(
+                    'SHA-256', 
+                    new TextEncoder().encode(publicKeyBase64)
+                );
+                const hashArray = Array.from(new Uint8Array(hash));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+            } catch (error) {
+                console.error('Error generating fingerprint:', error);
+                throw error;
+            }
+        }
+
+        // Encrypt message with hybrid encryption (RSA + AES)
+        async function encryptMessage(message, recipientPublicKeyBase64) {
+            try {
+                // Generate a random AES key for this message
+                const aesKey = await generateAESKey();
+                
+                // Encrypt the message with AES
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encodedMessage = new TextEncoder().encode(message);
+                
+                const encryptedContent = await window.crypto.subtle.encrypt(
+                    {
+                        name: "AES-GCM",
+                        iv: iv
+                    },
+                    aesKey,
+                    encodedMessage
+                );
+
+                // Export the AES key
+                const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+                
+                // Import recipient's public key
+                const recipientPublicKey = await importPublicKey(recipientPublicKeyBase64);
+                
+                // Encrypt the AES key with recipient's public key
+                const encryptedAesKey = await window.crypto.subtle.encrypt(
+                    {
+                        name: "RSA-OAEP"
+                    },
+                    recipientPublicKey,
+                    exportedAesKey
+                );
+
+                // Combine all components
+                const encryptedData = {
+                    iv: arrayBufferToBase64(iv),
+                    encryptedContent: arrayBufferToBase64(encryptedContent),
+                    encryptedAesKey: arrayBufferToBase64(encryptedAesKey),
+                    timestamp: Date.now()
+                };
+
+                return JSON.stringify(encryptedData);
+            } catch (error) {
+                console.error('Error encrypting message:', error);
+                throw error;
+            }
+        }
+
+        // Decrypt message with private key
+        async function decryptMessage(encryptedDataJson) {
+            try {
+                const encryptedData = JSON.parse(encryptedDataJson);
+                
+                // Decrypt the AES key with our private key
+                const encryptedAesKeyBuffer = base64ToArrayBuffer(encryptedData.encryptedAesKey);
+                const decryptedAesKeyBuffer = await window.crypto.subtle.decrypt(
+                    {
+                        name: "RSA-OAEP"
+                    },
+                    encryptionKeys.privateKey,
+                    encryptedAesKeyBuffer
+                );
+
+                // Import the AES key
+                const aesKey = await window.crypto.subtle.importKey(
+                    "raw",
+                    decryptedAesKeyBuffer,
+                    {
+                        name: "AES-GCM",
+                        length: 256
+                    },
+                    true,
+                    ["decrypt"]
+                );
+
+                // Decrypt the message content with AES
+                const iv = base64ToArrayBuffer(encryptedData.iv);
+                const encryptedContent = base64ToArrayBuffer(encryptedData.encryptedContent);
+                
+                const decryptedContent = await window.crypto.subtle.decrypt(
+                    {
+                        name: "AES-GCM",
+                        iv: iv
+                    },
+                    aesKey,
+                    encryptedContent
+                );
+
+                return new TextDecoder().decode(decryptedContent);
+            } catch (error) {
+                console.error('Error decrypting message:', error);
+                return "[Unable to decrypt - Security Error]";
+            }
+        }
+
+        // Encrypt file with hybrid encryption
+        async function encryptFile(file) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async function(e) {
+                        try {
+                            const fileData = new Uint8Array(e.target.result);
+                            
+                            // Generate AES key for this file
+                            const aesKey = await generateAESKey();
+                            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                            
+                            // Encrypt file data
+                            const encryptedContent = await window.crypto.subtle.encrypt(
+                                {
+                                    name: "AES-GCM",
+                                    iv: iv
+                                },
+                                aesKey,
+                                fileData
+                            );
+
+                            // Export and encrypt AES key
+                            const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+                            const encryptedAesKey = await window.crypto.subtle.encrypt(
+                                {
+                                    name: "RSA-OAEP"
+                                },
+                                encryptionKeys.publicKey, // Encrypt with our own public key for storage
+                                exportedAesKey
+                            );
+
+                            const encryptedFileData = {
+                                iv: arrayBufferToBase64(iv),
+                                encryptedContent: arrayBufferToBase64(encryptedContent),
+                                encryptedAesKey: arrayBufferToBase64(encryptedAesKey),
+                                fileName: file.name,
+                                fileType: file.type,
+                                fileSize: file.size
+                            };
+
+                            const encryptedBlob = new Blob([JSON.stringify(encryptedFileData)], { 
+                                type: 'application/json' 
+                            });
+                            
+                            resolve(encryptedBlob);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // Utility functions for base64 conversion
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Initialize encryption system
+        async function initializeEncryption() {
+            try {
+                document.getElementById('key-status').textContent = 'Generating RSA-2048 key pair...';
+                
+                // Generate RSA key pair
+                encryptionKeys.rsaKeyPair = await generateRSAKeyPair();
+                encryptionKeys.publicKey = encryptionKeys.rsaKeyPair.publicKey;
+                encryptionKeys.privateKey = encryptionKeys.rsaKeyPair.privateKey;
+                
+                // Export and store public key
+                const publicKeyBase64 = await exportPublicKey(encryptionKeys.publicKey);
+                
+                // Generate fingerprint
+                const fingerprint = await generateKeyFingerprint(publicKeyBase64);
+                
+                document.getElementById('key-status').textContent = 'Encryption keys generated successfully!';
+                document.getElementById('key-fingerprint').textContent = `Security Code: ${fingerprint}`;
+                document.getElementById('security-fingerprint').textContent = fingerprint;
+                document.getElementById('complete-key-btn').disabled = false;
+
+                // Store public key in Firestore
+                if (currentUser) {
+                    const userRef = db.collection('users').doc(currentUser.uid);
+                    await userRef.set({
+                        publicKey: publicKeyBase64,
+                        keyFingerprint: fingerprint,
+                        lastKeyUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error initializing encryption:', error);
+                document.getElementById('key-status').textContent = 'Error: Encryption setup failed';
+                return false;
+            }
+        }
+
+        // ==================== AUTHENTICATION ====================
+
         async function signUp() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -903,16 +1193,7 @@
                 errorElement.textContent = '';
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
-                
-                const userRef = db.collection('users').doc(currentUser.uid);
-                await userRef.set({
-                    email: email,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    isOnline: true
-                }, { merge: true });
-                
-                showNameSetupScreen();
+                showKeySetupScreen();
             } catch (error) {
                 errorElement.textContent = getAuthErrorMessage(error);
             }
@@ -931,60 +1212,15 @@
                 const userRef = db.collection('users').doc(currentUser.uid);
                 const userDoc = await userRef.get();
                 
-                if (!userDoc.exists) {
-                    await userRef.set({
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                        isOnline: true
-                    }, { merge: true });
-                } else {
-                    await userRef.set({
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                        isOnline: true
-                    }, { merge: true });
-                }
-                
-                const updatedUserDoc = await userRef.get();
-                if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
-                    userDisplayName = updatedUserDoc.data().displayName;
+                if (userDoc.exists) {
+                    userDisplayName = userDoc.data().displayName || 'User';
+                    await initializeEncryption();
                     showChatScreen();
                 } else {
-                    showNameSetupScreen();
+                    showKeySetupScreen();
                 }
             } catch (error) {
                 errorElement.textContent = getAuthErrorMessage(error);
-            }
-        }
-
-        async function saveDisplayName() {
-            const displayName = document.getElementById('display-name').value.trim();
-            const errorElement = document.getElementById('name-error');
-            
-            if (!displayName) {
-                errorElement.textContent = 'Please enter a display name';
-                return;
-            }
-            
-            if (displayName.length > 20) {
-                errorElement.textContent = 'Display name must be 20 characters or less';
-                return;
-            }
-            
-            try {
-                errorElement.textContent = '';
-                userDisplayName = displayName;
-                
-                const userRef = db.collection('users').doc(currentUser.uid);
-                await userRef.set({
-                    displayName: displayName,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    isOnline: true
-                }, { merge: true });
-                
-                showChatScreen();
-            } catch (error) {
-                errorElement.textContent = 'Error saving display name: ' + error.message;
             }
         }
 
@@ -1004,50 +1240,8 @@
             }
         }
 
-        function getAuthErrorMessage(error) {
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    return 'This email is already registered. Please sign in.';
-                case 'auth/invalid-email':
-                    return 'Please enter a valid email address.';
-                case 'auth/weak-password':
-                    return 'Password should be at least 6 characters.';
-                case 'auth/user-not-found':
-                    return 'No account found with this email. Please sign up.';
-                case 'auth/wrong-password':
-                    return 'Incorrect password. Please try again.';
-                default:
-                    return error.message;
-            }
-        }
+        // ==================== MESSAGING WITH REAL E2EE ====================
 
-        // Screen management
-        function showAuthScreen() {
-            document.getElementById('auth-screen').classList.add('active');
-            document.getElementById('name-setup-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.remove('active');
-            document.getElementById('messages-container').innerHTML = '<div class="welcome-message"><p>Welcome to your private chat! Start messaging below.</p></div>';
-        }
-
-        function showNameSetupScreen() {
-            document.getElementById('auth-screen').classList.remove('active');
-            document.getElementById('name-setup-screen').classList.add('active');
-            document.getElementById('chat-screen').classList.remove('active');
-        }
-
-        function showChatScreen() {
-            document.getElementById('auth-screen').classList.remove('active');
-            document.getElementById('name-setup-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.add('active');
-            document.getElementById('user-name').textContent = userDisplayName;
-            loadMessages();
-            updateOnlineStatus();
-            trackOnlineUsers();
-            populateEmojis();
-            loadTrendingGifs();
-        }
-
-        // Message functions
         async function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const messageText = messageInput.value.trim();
@@ -1055,45 +1249,47 @@
             if (!messageText || !currentUser) return;
             
             try {
-                const encryptedMessage = simpleEncrypt(messageText);
-                
+                // Get all users to encrypt for (in real app, this would be specific recipients)
+                const usersSnapshot = await db.collection('users').get();
+                const encryptedMessages = [];
+
+                // Encrypt message for each user (including ourselves)
+                for (const userDoc of usersSnapshot.docs) {
+                    if (userDoc.id !== currentUser.uid && userDoc.data().publicKey) {
+                        try {
+                            const encryptedMessage = await encryptMessage(messageText, userDoc.data().publicKey);
+                            encryptedMessages.push({
+                                userId: userDoc.id,
+                                encryptedMessage: encryptedMessage
+                            });
+                        } catch (error) {
+                            console.error(`Error encrypting for user ${userDoc.id}:`, error);
+                        }
+                    }
+                }
+
+                // Also encrypt for ourselves
+                const selfEncrypted = await encryptMessage(messageText, await exportPublicKey(encryptionKeys.publicKey));
+                encryptedMessages.push({
+                    userId: currentUser.uid,
+                    encryptedMessage: selfEncrypted
+                });
+
+                // Store encrypted messages in Firestore
                 const messageRef = await db.collection('messages').add({
-                    text: encryptedMessage,
+                    encryptedMessages: encryptedMessages,
                     sender: userDisplayName,
                     senderId: currentUser.uid,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'text',
-                    encrypted: true,
-                    status: 'sent'
+                    type: 'text'
                 });
-                
-                setTimeout(async () => {
-                    try {
-                        await messageRef.update({
-                            status: 'delivered'
-                        });
-                    } catch (error) {
-                        console.error('Error updating message status:', error);
-                    }
-                }, 1000);
-                
+
                 messageInput.value = '';
                 updateCharCount();
                 
             } catch (error) {
-                console.error('Error sending message:', error);
-                alert('Error sending message. Please try again.');
-            }
-        }
-
-        async function deleteMessage(messageId) {
-            if (!confirm('Are you sure you want to delete this message?')) return;
-            
-            try {
-                await db.collection('messages').doc(messageId).delete();
-            } catch (error) {
-                console.error('Error deleting message:', error);
-                alert('Error deleting message. Please try again.');
+                console.error('Error sending encrypted message:', error);
+                alert('Error sending secure message. Please try again.');
             }
         }
 
@@ -1102,16 +1298,23 @@
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snapshot => {
                     const messagesContainer = document.getElementById('messages-container');
+                    // Clear existing messages but keep security indicator
+                    const securityIndicator = messagesContainer.querySelector('.security-indicator');
                     messagesContainer.innerHTML = '';
+                    if (securityIndicator) {
+                        messagesContainer.appendChild(securityIndicator);
+                    }
                     
                     if (snapshot.empty) {
-                        messagesContainer.innerHTML = '<div class="welcome-message"><p>No messages yet. Start the conversation!</p></div>';
+                        const welcomeMsg = document.createElement('div');
+                        welcomeMsg.className = 'welcome-message';
+                        welcomeMsg.innerHTML = '<p>No messages yet. Start the secure conversation!</p>';
+                        messagesContainer.appendChild(welcomeMsg);
                         return;
                     }
                     
                     snapshot.forEach(doc => {
-                        const message = doc.data();
-                        displayMessage(message, doc.id);
+                        displayEncryptedMessage(doc.data(), doc.id);
                     });
                     
                     scrollToBottom();
@@ -1120,169 +1323,121 @@
                 });
         }
 
-        function displayMessage(message, messageId) {
+        async function displayEncryptedMessage(message, messageId) {
             const messagesContainer = document.getElementById('messages-container');
             
+            // Remove welcome message if it exists
             const welcomeMessage = messagesContainer.querySelector('.welcome-message');
             if (welcomeMessage) {
                 welcomeMessage.remove();
             }
             
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${message.senderId === currentUser?.uid ? 'sent' : 'received'}`;
-            
-            if (message.senderId !== currentUser?.uid) {
-                const senderDiv = document.createElement('div');
-                senderDiv.className = 'message-sender';
-                senderDiv.textContent = message.sender;
-                messageDiv.appendChild(senderDiv);
-            }
-            
-            if (message.type === 'text') {
-                const messageText = message.encrypted ? simpleDecrypt(message.text) : message.text;
+            // Find the encrypted message for current user
+            const userMessage = message.encryptedMessages.find(msg => msg.userId === currentUser.uid);
+            if (!userMessage) return;
+
+            try {
+                // Decrypt the message
+                const decryptedText = await decryptMessage(userMessage.encryptedMessage);
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${message.senderId === currentUser.uid ? 'sent' : 'received'}`;
+                
+                if (message.senderId !== currentUser.uid) {
+                    const senderDiv = document.createElement('div');
+                    senderDiv.className = 'message-sender';
+                    senderDiv.textContent = message.sender;
+                    messageDiv.appendChild(senderDiv);
+                }
                 
                 const textDiv = document.createElement('div');
                 textDiv.className = 'message-text';
-                textDiv.textContent = messageText;
+                textDiv.textContent = decryptedText;
                 messageDiv.appendChild(textDiv);
-            } 
-            else if (message.type === 'file') {
-                const fileDiv = document.createElement('div');
-                fileDiv.className = 'file-message';
                 
-                const fileInfoDiv = document.createElement('div');
-                fileInfoDiv.className = 'file-info';
+                const footerDiv = document.createElement('div');
+                footerDiv.className = 'message-footer';
                 
-                const fileIcon = document.createElement('div');
-                fileIcon.className = 'file-icon';
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
                 
-                if (message.fileType && message.fileType.startsWith('image/')) {
-                    fileIcon.innerHTML = '🖼️';
-                    
-                    const imageDiv = document.createElement('div');
-                    imageDiv.className = 'image-message';
-                    
-                    const img = document.createElement('img');
-                    img.src = message.fileUrl;
-                    img.alt = message.fileName;
-                    imageDiv.appendChild(img);
-                    
-                    messageDiv.appendChild(imageDiv);
+                if (message.timestamp) {
+                    const date = message.timestamp.toDate();
+                    timeDiv.textContent = formatTime(date);
                 } else {
-                    fileIcon.innerHTML = '📎';
+                    timeDiv.textContent = 'Just now';
                 }
                 
-                fileInfoDiv.appendChild(fileIcon);
+                footerDiv.appendChild(timeDiv);
                 
-                const fileDetailsDiv = document.createElement('div');
-                fileDetailsDiv.className = 'file-details';
+                // Add encryption indicator
+                const encryptionDiv = document.createElement('div');
+                encryptionDiv.className = 'message-status';
+                encryptionDiv.innerHTML = '🔒';
+                encryptionDiv.title = 'End-to-end encrypted';
+                footerDiv.appendChild(encryptionDiv);
                 
-                const fileNameDiv = document.createElement('div');
-                fileNameDiv.className = 'file-name';
-                fileNameDiv.textContent = message.fileName;
-                fileDetailsDiv.appendChild(fileNameDiv);
+                messageDiv.appendChild(footerDiv);
+                messagesContainer.appendChild(messageDiv);
                 
-                const fileSizeDiv = document.createElement('div');
-                fileSizeDiv.className = 'file-size';
-                fileSizeDiv.textContent = formatFileSize(message.fileSize);
-                fileDetailsDiv.appendChild(fileSizeDiv);
+            } catch (error) {
+                console.error('Error decrypting message:', error);
                 
-                fileInfoDiv.appendChild(fileDetailsDiv);
-                
-                const downloadBtn = document.createElement('button');
-                downloadBtn.className = 'download-btn';
-                downloadBtn.textContent = 'Download';
-                downloadBtn.onclick = () => window.open(message.fileUrl, '_blank');
-                fileInfoDiv.appendChild(downloadBtn);
-                
-                fileDiv.appendChild(fileInfoDiv);
-                messageDiv.appendChild(fileDiv);
+                // Show encrypted message indicator
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${message.senderId === currentUser.uid ? 'sent' : 'received'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-text" style="color: #666; font-style: italic;">
+                        🔒 Encrypted message (decryption failed)
+                    </div>
+                `;
+                messagesContainer.appendChild(messageDiv);
             }
-            else if (message.type === 'gif') {
-                const gifDiv = document.createElement('div');
-                gifDiv.className = 'image-message';
-                
-                const img = document.createElement('img');
-                img.src = message.gifUrl;
-                img.alt = 'GIF';
-                gifDiv.appendChild(img);
-                
-                messageDiv.appendChild(gifDiv);
-            }
-            
-            const footerDiv = document.createElement('div');
-            footerDiv.className = 'message-footer';
-            
-            const timeDiv = document.createElement('div');
-            timeDiv.className = 'message-time';
-            
-            if (message.timestamp) {
-                const date = message.timestamp.toDate();
-                timeDiv.textContent = formatTime(date);
-            } else {
-                timeDiv.textContent = 'Just now';
-            }
-            
-            footerDiv.appendChild(timeDiv);
-            
-            if (message.senderId === currentUser?.uid) {
-                const statusDiv = document.createElement('div');
-                statusDiv.className = 'message-status';
-                
-                const tickDiv = document.createElement('div');
-                tickDiv.className = `tick ${message.status || 'sent'}`;
-                tickDiv.innerHTML = message.status === 'delivered' ? '✓✓' : '✓';
-                
-                statusDiv.appendChild(tickDiv);
-                footerDiv.appendChild(statusDiv);
-            }
-            
-            messageDiv.appendChild(footerDiv);
-            
-            // Add delete button for user's own messages
-            if (message.senderId === currentUser?.uid) {
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'message-actions';
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'message-action delete';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.onclick = () => deleteMessage(messageId);
-                
-                actionsDiv.appendChild(deleteBtn);
-                messageDiv.appendChild(actionsDiv);
-            }
-            
-            messagesContainer.appendChild(messageDiv);
         }
+
+        // ==================== SCREEN MANAGEMENT ====================
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.add('active');
+            document.getElementById('key-setup-screen').classList.remove('active');
+            document.getElementById('chat-screen').classList.remove('active');
+        }
+
+        function showKeySetupScreen() {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('key-setup-screen').classList.add('active');
+            document.getElementById('chat-screen').classList.remove('active');
+            initializeEncryption();
+        }
+
+        function showChatScreen() {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('key-setup-screen').classList.remove('active');
+            document.getElementById('chat-screen').classList.add('active');
+            document.getElementById('user-name').textContent = userDisplayName;
+            
+            loadMessages();
+            updateOnlineStatus();
+            trackOnlineUsers();
+        }
+
+        function showSecurityInfo() {
+            document.getElementById('security-modal').classList.add('active');
+        }
+
+        function closeSecurityModal() {
+            document.getElementById('security-modal').classList.remove('active');
+        }
+
+        function completeKeySetup() {
+            userDisplayName = currentUser.email.split('@')[0];
+            showChatScreen();
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
 
         function formatTime(date) {
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            
-            if (diff < 60000) {
-                return 'Just now';
-            } else if (diff < 3600000) {
-                const minutes = Math.floor(diff / 60000);
-                return `${minutes}m ago`;
-            } else if (diff < 86400000) {
-                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            } else {
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            }
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function scrollToBottom() {
-            const messagesContainer = document.getElementById('messages-container');
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         }
 
         function updateCharCount() {
@@ -1291,18 +1446,17 @@
             charCount.textContent = messageInput.value.length;
         }
 
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
         function updateOnlineStatus() {
             if (currentUser) {
                 const userRef = db.collection('users').doc(currentUser.uid);
-                
                 userRef.set({
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
-                }, { merge: true });
-                
-                userRef.onDisconnect().set({
-                    isOnline: false,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             }
         }
@@ -1316,302 +1470,27 @@
                 });
         }
 
-        // File handling functions - FIXED
-        function openFileModal() {
-            document.getElementById('file-modal').classList.add('active');
-            document.getElementById('file-input').value = '';
-            document.getElementById('file-preview').innerHTML = '<p>No file selected</p>';
-            document.getElementById('file-info').innerHTML = '<p>Select a file to send</p>';
-            document.getElementById('send-file-btn').disabled = true;
-            selectedFile = null;
-        }
-
-        function closeFileModal() {
-            document.getElementById('file-modal').classList.remove('active');
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            selectedFile = file;
-            
-            document.getElementById('file-info').innerHTML = `
-                <p><strong>Name:</strong> ${file.name}</p>
-                <p><strong>Type:</strong> ${file.type || 'Unknown'}</p>
-                <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
-            `;
-            
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('file-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                document.getElementById('file-preview').innerHTML = '<p>No preview available</p>';
-            }
-            
-            document.getElementById('send-file-btn').disabled = false;
-        }
-
-        async function sendFile() {
-            if (!selectedFile || !currentUser) return;
-            
-            try {
-                document.getElementById('send-file-btn').disabled = true;
-                document.getElementById('send-file-btn').textContent = 'Uploading...';
-                
-                const encryptFile = document.getElementById('encrypt-file').checked;
-                
-                // Create a unique file path
-                const filePath = `files/${currentUser.uid}/${Date.now()}_${selectedFile.name}`;
-                const fileRef = storage.ref().child(filePath);
-                
-                // Upload file to Firebase Storage
-                const snapshot = await fileRef.put(selectedFile);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                
-                // Add message to Firestore
-                const messageRef = await db.collection('messages').add({
-                    type: 'file',
-                    fileName: selectedFile.name,
-                    fileType: selectedFile.type,
-                    fileSize: selectedFile.size,
-                    fileUrl: downloadURL,
-                    sender: userDisplayName,
-                    senderId: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    encrypted: encryptFile,
-                    status: 'sent'
-                });
-                
-                // Update message status after a delay
-                setTimeout(async () => {
-                    try {
-                        await messageRef.update({
-                            status: 'delivered'
-                        });
-                    } catch (error) {
-                        console.error('Error updating message status:', error);
-                    }
-                }, 1000);
-                
-                closeFileModal();
-                selectedFile = null;
-                
-            } catch (error) {
-                console.error('Error sending file:', error);
-                alert('Error sending file. Please try again.');
-                
-                document.getElementById('send-file-btn').disabled = false;
-                document.getElementById('send-file-btn').textContent = 'Send File';
+        function getAuthErrorMessage(error) {
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    return 'This email is already registered.';
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                case 'auth/user-not-found':
+                    return 'No account found with this email.';
+                case 'auth/wrong-password':
+                    return 'Incorrect password.';
+                default:
+                    return error.message;
             }
         }
 
-        // Emoji functions - FIXED
-        function populateEmojis() {
-            const smileyEmojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳'];
-            
-            const objectEmojis = ['💍', '💎', '💐', '🌸', '💮', '🏵️', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '☘️', '🍀', '🍁', '🍂', '🍃'];
-            
-            const symbolEmojis = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'];
-            
-            const smileyContainer = document.getElementById('smiley-emojis');
-            const objectContainer = document.getElementById('object-emojis');
-            const symbolContainer = document.getElementById('symbol-emojis');
-            
-            // Clear existing content
-            smileyContainer.innerHTML = '';
-            objectContainer.innerHTML = '';
-            symbolContainer.innerHTML = '';
-            
-            smileyEmojis.forEach(emoji => {
-                const emojiElement = document.createElement('div');
-                emojiElement.className = 'emoji';
-                emojiElement.textContent = emoji;
-                emojiElement.onclick = () => insertEmoji(emoji);
-                smileyContainer.appendChild(emojiElement);
-            });
-            
-            objectEmojis.forEach(emoji => {
-                const emojiElement = document.createElement('div');
-                emojiElement.className = 'emoji';
-                emojiElement.textContent = emoji;
-                emojiElement.onclick = () => insertEmoji(emoji);
-                objectContainer.appendChild(emojiElement);
-            });
-            
-            symbolEmojis.forEach(emoji => {
-                const emojiElement = document.createElement('div');
-                emojiElement.className = 'emoji';
-                emojiElement.textContent = emoji;
-                emojiElement.onclick = () => insertEmoji(emoji);
-                symbolContainer.appendChild(emojiElement);
-            });
-        }
+        // ==================== EVENT LISTENERS ====================
 
-        function toggleEmojiPicker() {
-            const emojiPicker = document.getElementById('emoji-picker');
-            const gifPicker = document.getElementById('gif-picker');
-            
-            emojiPicker.classList.toggle('active');
-            gifPicker.classList.remove('active');
-        }
-
-        function insertEmoji(emoji) {
-            const messageInput = document.getElementById('message-input');
-            const cursorPosition = messageInput.selectionStart;
-            const textBefore = messageInput.value.substring(0, cursorPosition);
-            const textAfter = messageInput.value.substring(cursorPosition);
-            
-            messageInput.value = textBefore + emoji + textAfter;
-            messageInput.focus();
-            messageInput.selectionStart = cursorPosition + emoji.length;
-            messageInput.selectionEnd = cursorPosition + emoji.length;
-            
-            updateCharCount();
-            
-            // Close emoji picker after selection
-            document.getElementById('emoji-picker').classList.remove('active');
-        }
-
-        // GIF functions - FIXED
-        async function loadTrendingGifs() {
-            // Using Tenor API for GIFs (you need to get your own API key)
-            const apiKey = 'LIVDSRZULELA'; // This is a public test key - replace with your own
-            const url = `https://g.tenor.com/v1/trending?key=${apiKey}&limit=20`;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                const gifGrid = document.getElementById('gif-grid');
-                gifGrid.innerHTML = '';
-                
-                data.results.forEach(gif => {
-                    const gifItem = document.createElement('div');
-                    gifItem.className = 'gif-item';
-                    
-                    const img = document.createElement('img');
-                    img.src = gif.media[0].tinygif.url;
-                    img.alt = gif.title || 'GIF';
-                    
-                    gifItem.appendChild(img);
-                    gifItem.onclick = () => sendGif(gif.media[0].gif.url);
-                    
-                    gifGrid.appendChild(gifItem);
-                });
-            } catch (error) {
-                console.error('Error loading GIFs:', error);
-                // Fallback to static GIFs if API fails
-                loadStaticGifs();
-            }
-        }
-
-        function loadStaticGifs() {
-            const gifGrid = document.getElementById('gif-grid');
-            gifGrid.innerHTML = '';
-            
-            // Add some placeholder GIFs
-            const placeholderGifs = [
-                'https://media.giphy.com/media/3o7aD2saQhuQxJ5hZe/giphy.gif',
-                'https://media.giphy.com/media/l0HlN8P27w1q4NMs4/giphy.gif',
-                'https://media.giphy.com/media/3o72FfM5HJydzafgUE/giphy.gif',
-                'https://media.giphy.com/media/l0HlSF6QaFk7WcUcw/giphy.gif'
-            ];
-            
-            placeholderGifs.forEach(gifUrl => {
-                const gifItem = document.createElement('div');
-                gifItem.className = 'gif-item';
-                
-                const img = document.createElement('img');
-                img.src = gifUrl;
-                img.alt = 'GIF';
-                
-                gifItem.appendChild(img);
-                gifItem.onclick = () => sendGif(gifUrl);
-                
-                gifGrid.appendChild(gifItem);
-            });
-        }
-
-        async function searchGifs(query) {
-            if (!query) {
-                loadTrendingGifs();
-                return;
-            }
-            
-            const apiKey = 'LIVDSRZULELA';
-            const url = `https://g.tenor.com/v1/search?key=${apiKey}&q=${encodeURIComponent(query)}&limit=20`;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                const gifGrid = document.getElementById('gif-grid');
-                gifGrid.innerHTML = '';
-                
-                data.results.forEach(gif => {
-                    const gifItem = document.createElement('div');
-                    gifItem.className = 'gif-item';
-                    
-                    const img = document.createElement('img');
-                    img.src = gif.media[0].tinygif.url;
-                    img.alt = gif.title || 'GIF';
-                    
-                    gifItem.appendChild(img);
-                    gifItem.onclick = () => sendGif(gif.media[0].gif.url);
-                    
-                    gifGrid.appendChild(gifItem);
-                });
-            } catch (error) {
-                console.error('Error searching GIFs:', error);
-            }
-        }
-
-        function toggleGifPicker() {
-            const gifPicker = document.getElementById('gif-picker');
-            const emojiPicker = document.getElementById('emoji-picker');
-            
-            gifPicker.classList.toggle('active');
-            emojiPicker.classList.remove('active');
-        }
-
-        async function sendGif(gifUrl) {
-            if (!currentUser) return;
-            
-            try {
-                const messageRef = await db.collection('messages').add({
-                    type: 'gif',
-                    gifUrl: gifUrl,
-                    sender: userDisplayName,
-                    senderId: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                });
-                
-                setTimeout(async () => {
-                    try {
-                        await messageRef.update({
-                            status: 'delivered'
-                        });
-                    } catch (error) {
-                        console.error('Error updating message status:', error);
-                    }
-                }, 1000);
-                
-                document.getElementById('gif-picker').classList.remove('active');
-                
-            } catch (error) {
-                console.error('Error sending GIF:', error);
-                alert('Error sending GIF. Please try again.');
-            }
-        }
-
-        // Event Listeners - FIXED
         document.addEventListener('DOMContentLoaded', function() {
-            // Enter key to send message
+            // Message input events
             document.getElementById('message-input').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1619,39 +1498,7 @@
                 }
             });
             
-            // Character count
             document.getElementById('message-input').addEventListener('input', updateCharCount);
-            
-            // File input change - FIXED: Properly attach the event listener
-            document.getElementById('file-input').addEventListener('change', handleFileSelect);
-            
-            // Enter key in name setup
-            document.getElementById('display-name').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    saveDisplayName();
-                }
-            });
-            
-            // GIF search
-            document.getElementById('gif-search').addEventListener('input', function(e) {
-                searchGifs(e.target.value);
-            });
-            
-            // Close pickers when clicking outside - FIXED
-            document.addEventListener('click', function(e) {
-                const emojiPicker = document.getElementById('emoji-picker');
-                const gifPicker = document.getElementById('gif-picker');
-                const emojiBtn = document.getElementById('emoji-btn');
-                const gifBtn = document.getElementById('gif-btn');
-                
-                if (emojiPicker && !emojiPicker.contains(e.target) && emojiBtn && !emojiBtn.contains(e.target)) {
-                    emojiPicker.classList.remove('active');
-                }
-                
-                if (gifPicker && !gifPicker.contains(e.target) && gifBtn && !gifBtn.contains(e.target)) {
-                    gifPicker.classList.remove('active');
-                }
-            });
             
             // Auth state listener
             auth.onAuthStateChanged(async (user) => {
@@ -1660,28 +1507,18 @@
                     const userRef = db.collection('users').doc(user.uid);
                     const userDoc = await userRef.get();
                     
-                    if (!userDoc.exists) {
-                        await userRef.set({
-                            email: user.email,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                            isOnline: true
-                        }, { merge: true });
-                    }
-                    
-                    const updatedUserDoc = await userRef.get();
-                    if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
-                        userDisplayName = updatedUserDoc.data().displayName;
+                    if (userDoc.exists) {
+                        userDisplayName = userDoc.data().displayName || user.email.split('@')[0];
+                        await initializeEncryption();
                         showChatScreen();
                     } else {
-                        showNameSetupScreen();
+                        showKeySetupScreen();
                     }
                 } else {
                     showAuthScreen();
                 }
             });
             
-            // Initialize character count
             updateCharCount();
         });
     </script>
