@@ -224,39 +224,42 @@
                 if (typeof window.libsignal !== 'undefined') {
                     libsignal = window.libsignal;
                     signalLibraryLoaded = true;
+                    console.log('Signal library already loaded');
                     resolve();
                     return;
                 }
 
-                const primaryScript = document.createElement('script');
-                primaryScript.src = 'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js';
-                primaryScript.onload = () => {
-                    if (typeof window.libsignal !== 'undefined') {
-                        libsignal = window.libsignal;
-                        signalLibraryLoaded = true;
-                        resolve();
-                    } else {
-                        reject(new Error('Primary CDN loaded but libsignal object not found'));
+                const cdns = [
+                    'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js',
+                    'https://unpkg.com/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js',
+                    'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.1.0/dist/libsignal-protocol.min.js'
+                ];
+
+                function tryCDN(index) {
+                    if (index >= cdns.length) {
+                        reject(new Error('All CDN attempts failed. Please check your internet connection.'));
+                        return;
                     }
-                };
-                primaryScript.onerror = () => {
-                    const backupScript = document.createElement('script');
-                    backupScript.src = 'https://unpkg.com/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js';
-                    backupScript.onload = () => {
+
+                    const script = document.createElement('script');
+                    script.src = cdns[index];
+                    script.onload = () => {
                         if (typeof window.libsignal !== 'undefined') {
                             libsignal = window.libsignal;
                             signalLibraryLoaded = true;
+                            console.log('Signal library loaded from CDN ' + (index + 1));
                             resolve();
                         } else {
-                            reject(new Error('Backup CDN loaded but libsignal object not found'));
+                            tryCDN(index + 1);
                         }
                     };
-                    backupScript.onerror = () => {
-                        reject(new Error('All CDN attempts failed'));
+                    script.onerror = () => {
+                        tryCDN(index + 1);
                     };
-                    document.head.appendChild(backupScript);
-                };
-                document.head.appendChild(primaryScript);
+                    document.head.appendChild(script);
+                }
+
+                tryCDN(0);
             });
         }
 
