@@ -420,8 +420,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-    <!-- Signal Protocol Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.1.0/dist/libsignal-protocol.min.js"></script>
+    <!-- Signal Protocol Library - FIXED: Using working library -->
+    <script src="https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js"></script>
 
     <script>
         // Firebase Configuration
@@ -443,12 +443,12 @@
 
         // ==================== SECURITY CONSTANTS ====================
         const SECURITY_CONFIG = {
-            PBKDF2_ITERATIONS: 310000, // OWASP recommended minimum
+            PBKDF2_ITERATIONS: 310000,
             KEY_WRAPPING_ALGORITHM: 'AES-GCM',
             KEY_LENGTH: 256,
             MESSAGE_IV_LENGTH: 12,
             SALT_LENGTH: 16,
-            MAX_MESSAGE_AGE: 7 * 24 * 60 * 60 * 1000, // 7 days
+            MAX_MESSAGE_AGE: 7 * 24 * 60 * 60 * 1000,
             MAX_CACHED_MESSAGES: 1000,
             PRE_KEY_AMOUNT: 100
         };
@@ -458,7 +458,7 @@
         class SignalProtocolStore {
             constructor() {
                 this._store = {};
-                this.verifiedIdentityKeys = new Map(); // Store verified identity keys for MITM protection
+                this.verifiedIdentityKeys = new Map();
             }
 
             // Identity
@@ -495,17 +495,13 @@
                 const savedKey = this.verifiedIdentityKeys.get(key) || this._getItem(`verifiedIdentity_${key}`);
                 if (!savedKey) return false;
                 
-                // Compare identity keys
                 return arrayBufferToBase64(savedKey) === arrayBufferToBase64(identityKey);
             }
 
             // Session safety checks
             isSessionValid(address) {
                 const session = this.loadSession(address.toString());
-                if (!session) return false;
-                
-                // Check if session has proper ratchet state
-                return session.currentRatchet && session.currentRatchet.ephemeralKeyPair;
+                return !!(session && session.currentRatchet && session.currentRatchet.ephemeralKeyPair);
             }
 
             // Internal methods
@@ -531,88 +527,81 @@
         let currentUser = null;
         let userDisplayName = '';
         let signalStore = new SignalProtocolStore();
-        let verifiedUsers = new Map(); // userId -> {publicKey, securityCode, verifiedAt}
-        let messageCache = new Map(); // messageId -> timestamp (for replay protection)
+        let verifiedUsers = new Map();
+        let messageCache = new Map();
 
         // ==================== KEY MANAGEMENT ====================
 
         async function generateAndRegisterKeys(userIdentifier, store) {
-            // Generate a registration ID
-            const registrationId = libsignal.KeyHelper.generateRegistrationId();
-            store.setRegistrationId(registrationId);
+            try {
+                // Check if libsignal is available
+                if (typeof libsignal === 'undefined') {
+                    throw new Error('Signal Protocol library not loaded. Please check your internet connection and try again.');
+                }
 
-            // Generate Identity Key Pair (X25519)
-            const identityKeyPair = await libsignal.KeyHelper.generateIdentityKeyPair();
-            store.setIdentityKeyPair(identityKeyPair);
+                // Generate a registration ID
+                const registrationId = libsignal.KeyHelper.generateRegistrationId();
+                store.setRegistrationId(registrationId);
 
-            // Generate a Signed PreKey (X25519)
-            const signedPreKeyId = 1;
-            const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId);
-            store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair);
+                // Generate Identity Key Pair (X25519)
+                const identityKeyPair = await libsignal.KeyHelper.generateIdentityKeyPair();
+                store.setIdentityKeyPair(identityKeyPair);
 
-            // Generate a batch of One-Time PreKeys (X25519)
-            const oneTimePreKeys = [];
-            for (let i = 0; i < SECURITY_CONFIG.PRE_KEY_AMOUNT; ++i) {
-                const preKeyId = i + 1;
-                const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId);
-                store.storePreKey(preKeyId, preKey.keyPair);
-                
-                // Prepare the public key for the server bundle
-                const publicPreKey = {
-                    keyId: preKey.keyId,
-                    publicKey: preKey.keyPair.pubKey
+                // Generate a Signed PreKey (X25519)
+                const signedPreKeyId = 1;
+                const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId);
+                store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair);
+
+                // Generate a batch of One-Time PreKeys (X25519)
+                const oneTimePreKeys = [];
+                for (let i = 0; i < SECURITY_CONFIG.PRE_KEY_AMOUNT; ++i) {
+                    const preKeyId = i + 1;
+                    const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId);
+                    store.storePreKey(preKeyId, preKey.keyPair);
+                    
+                    const publicPreKey = {
+                        keyId: preKey.keyId,
+                        publicKey: preKey.keyPair.pubKey
+                    };
+                    oneTimePreKeys.push(publicPreKey);
+                }
+
+                // Create the public bundle for the server
+                const publicSignedPreKey = {
+                    keyId: signedPreKeyId,
+                    publicKey: signedPreKey.keyPair.pubKey,
+                    signature: signedPreKey.signature
                 };
-                oneTimePreKeys.push(publicPreKey);
+
+                const userKeyBundle = {
+                    registrationId: registrationId,
+                    identityPubKey: identityKeyPair.pubKey,
+                    signedPreKey: publicSignedPreKey,
+                    oneTimePreKeys: oneTimePreKeys,
+                    securityCode: await generateSecurityCode(identityKeyPair.pubKey)
+                };
+
+                // Store in Firestore - SYNCED PROPERLY
+                const userRef = db.collection('users').doc(userIdentifier);
+                await userRef.set({
+                    keyBundle: userKeyBundle,
+                    displayName: userDisplayName,
+                    securityCode: userKeyBundle.securityCode,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    keyVersion: 1
+                }, { merge: true });
+
+                console.log('Signal Protocol keys generated and bundle uploaded to server.');
+                return userKeyBundle;
+
+            } catch (error) {
+                console.error('Error generating keys:', error);
+                throw new Error(`Failed to generate encryption keys: ${error.message}`);
             }
-
-            // Create the public bundle for the server
-            const publicSignedPreKey = {
-                keyId: signedPreKeyId,
-                publicKey: signedPreKey.keyPair.pubKey,
-                signature: signedPreKey.signature
-            };
-
-            const userKeyBundle = {
-                registrationId: registrationId,
-                identityPubKey: identityKeyPair.pubKey,
-                signedPreKey: publicSignedPreKey,
-                oneTimePreKeys: oneTimePreKeys
-            };
-
-            // Store in Firestore
-            const userRef = db.collection('users').doc(userIdentifier);
-            await userRef.set({
-                keyBundle: userKeyBundle,
-                displayName: userDisplayName,
-                securityCode: await generateSecurityCode(identityKeyPair.pubKey),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            console.log('Signal Protocol keys generated and bundle uploaded to server.');
-            return userKeyBundle;
         }
 
-        // ==================== FIX #1: VERIFY IDENTITY KEY BEFORE FIRST MESSAGE ====================
-
-        async function verifyRecipientBundleBeforeSession(recipientId, recipientBundle) {
-            // Check if we have a verified security code for this user
-            const verifiedUser = verifiedUsers.get(recipientId);
-            if (!verifiedUser) {
-                throw new Error(`Security alert: User ${recipientId} is not verified. Please verify their security code before messaging.`);
-            }
-
-            // Calculate the expected security code from the received bundle
-            const computedCode = await generateSecurityCode(recipientBundle.identityPubKey);
-            
-            // Compare with our saved verified code
-            if (computedCode !== verifiedUser.securityCode) {
-                throw new Error(`SECURITY ALERT: Identity key mismatch for ${recipientId}. Possible MITM attack! Expected: ${verifiedUser.securityCode}, Got: ${computedCode}`);
-            }
-
-            console.log(`✅ Identity key verified for ${recipientId}`);
-            return true;
-        }
+        // ==================== MESSAGE ENCRYPTION/DECRYPTION ====================
 
         async function startSessionAndSendMessage(recipientId, messageText, store) {
             try {
@@ -627,7 +616,7 @@
                     throw new Error('Recipient has no key bundle');
                 }
 
-                // CRITICAL FIX: Verify identity key before starting session
+                // Verify identity key before starting session
                 await verifyRecipientBundleBeforeSession(recipientId, recipientBundle);
 
                 // Create an address object for the recipient
@@ -637,7 +626,7 @@
                 const sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
                 await sessionBuilder.processPreKey(recipientBundle);
 
-                // Save the verified identity key for future message verification
+                // Save the verified identity key
                 store.saveVerifiedIdentityKey(recipientAddress, recipientBundle.identityPubKey);
 
                 // Encrypt the message
@@ -657,21 +646,24 @@
             }
         }
 
-        async function sendMessageToRecipient(recipientId, messageText, store) {
-            const recipientAddress = new libsignal.SignalProtocolAddress(recipientId, 1);
-            const sessionCipher = new libsignal.SessionCipher(store, recipientAddress);
-            const plaintext = new TextEncoder().encode(messageText).buffer;
-            const ciphertext = await sessionCipher.encrypt(plaintext);
-            
-            return {
-                recipientId: recipientId,
-                ciphertext: ciphertext,
-                type: ciphertext.type,
-                sessionValid: store.isSessionValid(recipientAddress)
-            };
-        }
+        async function verifyRecipientBundleBeforeSession(recipientId, recipientBundle) {
+            // Check if we have a verified security code for this user
+            const verifiedUser = verifiedUsers.get(recipientId);
+            if (!verifiedUser) {
+                throw new Error(`Security alert: User ${recipientId} is not verified. Please verify their security code before messaging.`);
+            }
 
-        // ==================== FIX #2: SENDER AUTHENTICATION & SESSION VERIFICATION ====================
+            // Calculate the expected security code from the received bundle
+            const computedCode = await generateSecurityCode(recipientBundle.identityPubKey);
+            
+            // Compare with our saved verified code
+            if (computedCode !== verifiedUser.securityCode) {
+                throw new Error(`SECURITY ALERT: Identity key mismatch for ${recipientId}. Possible MITM attack!`);
+            }
+
+            console.log(`✅ Identity key verified for ${recipientId}`);
+            return true;
+        }
 
         async function receiveAndDecryptMessage(senderId, ciphertextMessage, store) {
             try {
@@ -685,26 +677,20 @@
                     decryptionSuccess: false
                 };
 
-                // Check the message type to use the correct decryption method
                 if (ciphertextMessage.type === 3) {
-                    // PreKeyWhisperMessage (first message) - establishes new session
+                    // PreKeyWhisperMessage (first message)
                     plaintextArrayBuffer = await sessionCipher.decryptPreKeyWhisperMessage(ciphertextMessage.body, 'binary');
                     sessionSafety.decryptionSuccess = true;
                     
-                    // After first message decryption, verify the identity key from the session
                     const session = store.loadSession(senderAddress.toString());
                     if (session && session.remoteIdentityKey) {
                         sessionSafety.identityVerified = store.isIdentityVerified(senderAddress, session.remoteIdentityKey);
-                        if (!sessionSafety.identityVerified) {
-                            console.warn(`⚠️ First message from ${senderId} - identity not yet verified`);
-                        }
                     }
                 } else if (ciphertextMessage.type === 1) {
-                    // WhisperMessage (subsequent message) - uses existing session
+                    // WhisperMessage (subsequent message)
                     plaintextArrayBuffer = await sessionCipher.decryptWhisperMessage(ciphertextMessage.body, 'binary');
                     sessionSafety.decryptionSuccess = true;
                     
-                    // For subsequent messages, check session validity and identity verification
                     sessionSafety.hasValidSession = store.isSessionValid(senderAddress);
                     const session = store.loadSession(senderAddress.toString());
                     if (session && session.remoteIdentityKey) {
@@ -714,7 +700,6 @@
                     throw new Error('Unknown message type: ' + ciphertextMessage.type);
                 }
 
-                // Convert the decrypted ArrayBuffer back to a string
                 const plaintext = new TextDecoder().decode(new Uint8Array(plaintextArrayBuffer));
                 
                 return {
@@ -727,63 +712,47 @@
             }
         }
 
-        function getMessageVerificationStatus(sessionSafety, senderId) {
-            const verifiedUser = verifiedUsers.get(senderId);
-            
-            // Highest priority: Decryption failed or no valid session
-            if (!sessionSafety.decryptionSuccess) {
-                return {
-                    level: 'error',
-                    text: '🔴 Decryption failed',
-                    description: 'Message could not be decrypted'
-                };
-            }
+        // ==================== SECURITY UTILITIES ====================
 
-            // Medium priority: Valid session but identity not verified
-            if (sessionSafety.hasValidSession && sessionSafety.identityVerified) {
-                return {
-                    level: 'verified',
-                    text: '✅ Verified contact',
-                    description: 'Encrypted and authenticated via secure session'
-                };
-            }
-
-            // Check if user is in verified users list (out-of-band verification)
-            if (verifiedUser) {
-                return {
-                    level: 'verified',
-                    text: '✅ Verified contact',
-                    description: 'Security code verified'
-                };
-            }
-
-            // Lowest priority: Valid decryption but unverified identity
-            if (sessionSafety.decryptionSuccess) {
-                return {
-                    level: 'unverified',
-                    text: '⚠️ Unverified contact',
-                    description: 'Message decrypted but sender identity not verified'
-                };
-            }
-
-            return {
-                level: 'unknown',
-                text: '❓ Unknown security status',
-                description: 'Unable to verify message authenticity'
-            };
+        async function generateSecurityCode(publicKey) {
+            const hash = await window.crypto.subtle.digest(
+                'SHA-256', 
+                new TextEncoder().encode(arrayBufferToBase64(publicKey))
+            );
+            const hashArray = Array.from(new Uint8Array(hash));
+            return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
         }
 
-        // ==================== KEY WRAPPING AND STORAGE ====================
+        async function deriveWrappingKey(passphrase, salt) {
+            const enc = new TextEncoder();
+            const pass = enc.encode(passphrase);
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw", pass, { name: "PBKDF2" }, false, ["deriveKey"]
+            );
+            
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: SECURITY_CONFIG.KEY_LENGTH },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        // ==================== STORAGE MANAGEMENT ====================
 
         async function wrapStore(store, passphrase) {
             const storeObj = store.toObject();
             const storeString = JSON.stringify(storeObj);
             
-            // Generate salt and derive wrapping key
             const salt = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.SALT_LENGTH));
             const wrappingKey = await deriveWrappingKey(passphrase, salt);
             
-            // Generate IV and encrypt
             const iv = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.MESSAGE_IV_LENGTH));
             const ciphertext = await window.crypto.subtle.encrypt(
                 { 
@@ -824,88 +793,6 @@
                 throw new Error('Failed to unwrap store: ' + error.message);
             }
         }
-
-        // ==================== SECURITY UTILITIES ====================
-
-        async function generateSecurityCode(publicKey) {
-            const hash = await window.crypto.subtle.digest(
-                'SHA-256', 
-                new TextEncoder().encode(arrayBufferToBase64(publicKey))
-            );
-            const hashArray = Array.from(new Uint8Array(hash));
-            // Take first 12 bytes (24 hex chars) for readable code
-            return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-        }
-
-        async function deriveWrappingKey(passphrase, salt) {
-            const enc = new TextEncoder();
-            const pass = enc.encode(passphrase);
-            const keyMaterial = await window.crypto.subtle.importKey(
-                "raw", pass, { name: "PBKDF2" }, false, ["deriveKey"]
-            );
-            
-            return await window.crypto.subtle.deriveKey(
-                {
-                    name: "PBKDF2",
-                    salt: salt,
-                    iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS,
-                    hash: "SHA-256"
-                },
-                keyMaterial,
-                { name: "AES-GCM", length: SECURITY_CONFIG.KEY_LENGTH },
-                false,
-                ["encrypt", "decrypt"]
-            );
-        }
-
-        function generateMessageId() {
-            return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-
-        function isReplayAttack(messageId, timestamp) {
-            // Check if message is too old
-            if (Date.now() - timestamp > SECURITY_CONFIG.MAX_MESSAGE_AGE) {
-                return true;
-            }
-
-            // Check if we've seen this message ID before
-            if (messageCache.has(messageId)) {
-                return true;
-            }
-
-            // Add to cache and clean old entries
-            messageCache.set(messageId, timestamp);
-            if (messageCache.size > SECURITY_CONFIG.MAX_CACHED_MESSAGES) {
-                const oldestEntries = Array.from(messageCache.entries())
-                    .sort((a, b) => a[1] - b[1])
-                    .slice(0, messageCache.size - SECURITY_CONFIG.MAX_CACHED_MESSAGES);
-                oldestEntries.forEach(([id]) => messageCache.delete(id));
-            }
-
-            return false;
-        }
-
-        // ==================== UTILITY FUNCTIONS ====================
-
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-
-        function base64ToArrayBuffer(base64) {
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
-        // ==================== STORAGE MANAGEMENT ====================
 
         async function openDB() {
             return new Promise((resolve, reject) => {
@@ -948,6 +835,50 @@
             }
         }
 
+        // ==================== UTILITY FUNCTIONS ====================
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function generateMessageId() {
+            return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        function isReplayAttack(messageId, timestamp) {
+            if (Date.now() - timestamp > SECURITY_CONFIG.MAX_MESSAGE_AGE) {
+                return true;
+            }
+
+            if (messageCache.has(messageId)) {
+                return true;
+            }
+
+            messageCache.set(messageId, timestamp);
+            if (messageCache.size > SECURITY_CONFIG.MAX_CACHED_MESSAGES) {
+                const oldestEntries = Array.from(messageCache.entries())
+                    .sort((a, b) => a[1] - b[1])
+                    .slice(0, messageCache.size - SECURITY_CONFIG.MAX_CACHED_MESSAGES);
+                oldestEntries.forEach(([id]) => messageCache.delete(id));
+            }
+
+            return false;
+        }
+
         // ==================== VERIFICATION MANAGEMENT ====================
 
         async function initializeKeyVerification() {
@@ -958,7 +889,6 @@
             
             const securityCode = await generateSecurityCode(identityKeyPair.pubKey);
             
-            // Store our own key for consistency
             verifiedUsers.set(currentUser.uid, {
                 publicKey: identityKeyPair.pubKey,
                 securityCode: securityCode,
@@ -966,7 +896,6 @@
                 isCurrentUser: true
             });
 
-            // Load existing verified users
             await loadVerifiedUsers();
             
             return securityCode;
@@ -993,28 +922,6 @@
             } catch (error) {
                 console.error('Failed to save verified users:', error);
             }
-        }
-
-        async function verifyUserSecurityCode(userId, securityCode) {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (!userDoc.exists) return false;
-
-            const userData = userDoc.data();
-            if (!userData.keyBundle) return false;
-
-            const computedCode = await generateSecurityCode(userData.keyBundle.identityPubKey);
-            
-            if (computedCode === securityCode) {
-                verifiedUsers.set(userId, {
-                    publicKey: userData.keyBundle.identityPubKey,
-                    securityCode: computedCode,
-                    verifiedAt: Date.now()
-                });
-                await saveVerifiedUsers();
-                return true;
-            }
-            
-            return false;
         }
 
         // ==================== UI MANAGEMENT ====================
@@ -1204,8 +1111,29 @@
             showScreen('chat-screen');
         }
 
+        async function verifyUserSecurityCode(userId, securityCode) {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (!userDoc.exists) return false;
+
+            const userData = userDoc.data();
+            if (!userData.keyBundle) return false;
+
+            const computedCode = await generateSecurityCode(userData.keyBundle.identityPubKey);
+            
+            if (computedCode === securityCode) {
+                verifiedUsers.set(userId, {
+                    publicKey: userData.keyBundle.identityPubKey,
+                    securityCode: computedCode,
+                    verifiedAt: Date.now()
+                });
+                await saveVerifiedUsers();
+                return true;
+            }
+            
+            return false;
+        }
+
         function showSecurityInfo() {
-            // Implementation for security info modal
             document.getElementById('security-modal').classList.add('active');
         }
 
@@ -1238,7 +1166,7 @@
                 const encryptedMessages = [];
 
                 for (const userDoc of usersSnapshot.docs) {
-                    if (userDoc.id === currentUser.uid) continue; // Skip self
+                    if (userDoc.id === currentUser.uid) continue;
 
                     try {
                         let encryptedResult;
@@ -1261,7 +1189,6 @@
                     } catch (sessionError) {
                         // If encryption fails, we need to start a new session
                         try {
-                            // CRITICAL FIX: This will now verify identity key before session
                             encryptedResult = await startSessionAndSendMessage(userDoc.id, messageText, signalStore);
                             encryptedMessages.push({
                                 userId: userDoc.id,
@@ -1272,7 +1199,6 @@
                             });
                         } catch (startSessionError) {
                             console.error(`Failed to start session with ${userDoc.id}:`, startSessionError);
-                            // Show security warning to user
                             displaySecurityWarning(`Cannot send to ${userDoc.data().displayName}: ${startSessionError.message}`);
                         }
                     }
@@ -1343,6 +1269,48 @@
                 });
         }
 
+        function getMessageVerificationStatus(sessionSafety, senderId) {
+            const verifiedUser = verifiedUsers.get(senderId);
+            
+            if (!sessionSafety.decryptionSuccess) {
+                return {
+                    level: 'error',
+                    text: '🔴 Decryption failed',
+                    description: 'Message could not be decrypted'
+                };
+            }
+
+            if (sessionSafety.hasValidSession && sessionSafety.identityVerified) {
+                return {
+                    level: 'verified',
+                    text: '✅ Verified contact',
+                    description: 'Encrypted and authenticated via secure session'
+                };
+            }
+
+            if (verifiedUser) {
+                return {
+                    level: 'verified',
+                    text: '✅ Verified contact',
+                    description: 'Security code verified'
+                };
+            }
+
+            if (sessionSafety.decryptionSuccess) {
+                return {
+                    level: 'unverified',
+                    text: '⚠️ Unverified contact',
+                    description: 'Message decrypted but sender identity not verified'
+                };
+            }
+
+            return {
+                level: 'unknown',
+                text: '❓ Unknown security status',
+                description: 'Unable to verify message authenticity'
+            };
+        }
+
         function displayMessage(text, senderId, isSent, verificationStatus) {
             const messagesContainer = document.getElementById('messages-container');
             const messageDiv = document.createElement('div');
@@ -1357,7 +1325,6 @@
             securityDiv.className = `message-${verificationStatus.level}`;
             securityDiv.textContent = verificationStatus.text;
             
-            // Add tooltip for detailed security information
             securityDiv.title = verificationStatus.description;
             messageDiv.appendChild(securityDiv);
 
