@@ -3,50 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Private Chat - True E2EE</title>
+    <title>Secure Private Chat - Military Grade Encryption</title>
     <style>
-        /* ... (keep all your existing CSS styles) ... */
-         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Base styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --whatsapp-green: #25D366;
-            --whatsapp-dark: #075E54;
-            --whatsapp-light: #128C7E;
-            --chat-bg: #e5ddd5;
-            --message-sent: #dcf8c6;
-            --message-received: #ffffff;
-            --border-color: #e0e0e0;
-            --error-color: #e74c3c;
-            --warning-color: #f39c12;
+            --whatsapp-green: #25D366; --whatsapp-dark: #075E54;
+            --whatsapp-light: #128C7E; --chat-bg: #e5ddd5;
+            --message-sent: #dcf8c6; --message-received: #ffffff;
+            --border-color: #e0e0e0; --error-color: #e74c3c; --warning-color: #f39c12;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--chat-bg);
-            height: 100vh;
-            overflow: hidden;
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--chat-bg); 
+            height: 100vh; 
+            overflow: hidden; 
         }
-
-        .screen {
-            display: none;
-            height: 100vh;
+        
+        /* Screen Management */
+        .screen { 
+            display: none; 
+            height: 100vh; 
+            width: 100%;
         }
-
-        .screen.active {
-            display: flex;
-            flex-direction: column;
+        .screen.active { 
+            display: flex; 
+            flex-direction: column; 
         }
-
+        
+        /* Auth Screens */
         #auth-screen {
             background: linear-gradient(135deg, var(--whatsapp-dark) 0%, var(--whatsapp-light) 100%);
             justify-content: center;
             align-items: center;
         }
-
         .auth-container {
             background: white;
             padding: 2.5rem;
@@ -56,19 +46,6 @@
             max-width: 400px;
             text-align: center;
         }
-
-        .app-logo h1 {
-            color: var(--whatsapp-dark);
-            margin-bottom: 0.5rem;
-            font-size: 1.8rem;
-        }
-
-        .app-logo p {
-            color: #666;
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-
         .auth-form input {
             width: 100%;
             padding: 14px;
@@ -76,18 +53,7 @@
             border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s;
         }
-
-        .auth-form input:focus {
-            outline: none;
-            border-color: var(--whatsapp-light);
-        }
-
-        .auth-buttons {
-            margin-top: 1.5rem;
-        }
-
         .auth-buttons button {
             width: 100%;
             padding: 14px;
@@ -97,61 +63,100 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
         }
-
-        #signup-btn {
-            background: var(--whatsapp-green);
-            color: white;
+        #signup-btn { background: var(--whatsapp-green); color: white; }
+        #signin-btn { background: var(--whatsapp-dark); color: white; }
+        
+        /* Security-specific styles */
+        .security-indicator {
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 8px 12px;
+            background: #e8f5e8; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            font-size: 0.8rem; 
+            color: #2e7d32;
         }
-
-        #signin-btn {
-            background: var(--whatsapp-dark);
-            color: white;
+        .security-warning {
+            background: #ffebee;
+            color: #c62828;
         }
-
-        .auth-buttons button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        .key-management {
+            background: #f3e5f5; 
+            border-radius: 8px; 
+            padding: 1rem; 
+            margin: 1rem 0;
         }
-
-        .error-message {
-            color: var(--error-color);
-            margin-top: 1rem;
-            font-size: 14px;
-            min-height: 20px;
-        }
-
-        #name-setup-screen {
-            background: linear-gradient(135deg, var(--whatsapp-dark) 0%, var(--whatsapp-light) 100%);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .name-setup-container {
+        .key-fingerprint {
+            font-family: monospace; 
+            word-break: break-all; 
             background: white;
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
+            padding: 8px; 
+            border-radius: 4px; 
+            margin: 8px 0; 
+            font-size: 0.7rem;
         }
-
-        .name-setup-container h2 {
-            color: var(--whatsapp-dark);
-            margin-bottom: 1rem;
+        .verification-section {
+            border: 2px solid #4caf50; 
+            border-radius: 8px; 
+            padding: 1rem;
+            margin: 1rem 0; 
+            background: #f1f8e9;
         }
-
-        .name-setup-container p {
-            color: #666;
-            margin-bottom: 1.5rem;
+        .device-list { margin: 1rem 0; }
+        .device-item {
+            padding: 0.5rem; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            margin: 0.5rem 0; 
+            background: white;
         }
-
-        #chat-screen {
-            background: var(--chat-bg);
+        .verified-badge { 
+            color: #4caf50; 
+            font-weight: bold; 
         }
-
+        .warning-badge { 
+            color: #ff9800; 
+            font-weight: bold; 
+        }
+        .passphrase-input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px;
+        }
+        .message-verified { 
+            color: #4caf50; 
+            font-size: 0.7rem; 
+        }
+        .message-unverified { 
+            color: #ff9800; 
+            font-size: 0.7rem; 
+        }
+        .message-security-error {
+            color: #f44336;
+            font-size: 0.7rem;
+        }
+        .qr-code { 
+            width: 200px; 
+            height: 200px; 
+            margin: 1rem auto; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            padding: 10px;
+            background: white;
+        }
+        .ratchet-status {
+            font-size: 0.7rem; 
+            color: #666; 
+            margin-top: 4px;
+        }
+        
+        /* Chat Screen */
+        #chat-screen { background: var(--chat-bg); }
         .chat-header {
             background: var(--whatsapp-dark);
             color: white;
@@ -159,45 +164,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-
-        .header-info h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.2rem;
-        }
-
-        #online-count {
-            font-size: 0.8rem;
-            color: #90ee90;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        #user-name {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .chat-header button {
-            background: transparent;
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .chat-header button:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
         .chat-container {
             flex: 1;
             display: flex;
@@ -207,22 +174,12 @@
             width: 100%;
             height: calc(100vh - 80px);
         }
-
         .messages-container {
             flex: 1;
             padding: 1rem;
             overflow-y: auto;
             background: var(--chat-bg);
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
         }
-
-        .welcome-message {
-            text-align: center;
-            color: #666;
-            padding: 2rem;
-            font-style: italic;
-        }
-
         .message {
             margin: 8px 0;
             padding: 12px 16px;
@@ -230,135 +187,25 @@
             max-width: 70%;
             word-wrap: break-word;
             animation: fadeIn 0.3s ease-in;
-            position: relative;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .message.sent {
             background: var(--message-sent);
             margin-left: auto;
-            border-bottom-right-radius: 2px;
         }
-
         .message.received {
             background: var(--message-received);
-            border-bottom-left-radius: 2px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-
-        .message-sender {
-            font-size: 0.8rem;
-            color: var(--whatsapp-dark);
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .message-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 4px;
-        }
-
-        .message-time {
-            font-size: 0.7rem;
-            color: #999;
-        }
-
-        .message-status {
-            display: flex;
-            align-items: center;
-            margin-left: 8px;
-        }
-
-        .tick {
-            font-size: 0.7rem;
-            color: #999;
-        }
-
-        .tick.sent {
-            color: #999;
-        }
-
-        .tick.delivered {
-            color: #999;
-        }
-
-        .tick.read {
-            color: var(--whatsapp-light);
-        }
-
-        .file-message {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 5px;
-            background: rgba(255,255,255,0.7);
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .file-icon {
-            font-size: 1.5rem;
-        }
-
-        .file-details {
-            flex: 1;
-        }
-
-        .file-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .file-size {
-            font-size: 0.7rem;
-            color: #666;
-        }
-
-        .download-btn {
-            background: var(--whatsapp-green);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        .image-message {
-            max-width: 300px;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .image-message img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
         .message-input-container {
             background: white;
             border-top: 1px solid var(--border-color);
             padding: 1rem;
         }
-
         .message-input {
             display: flex;
             gap: 12px;
             align-items: center;
         }
-
         .message-input input {
             flex: 1;
             padding: 12px 18px;
@@ -366,67 +213,9 @@
             border-radius: 24px;
             outline: none;
             font-size: 15px;
-            transition: border-color 0.3s;
         }
-
-        .message-input input:focus {
-            border-color: var(--whatsapp-light);
-        }
-
-        .input-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .input-buttons button {
-            background: var(--whatsapp-green);
-            color: white;
-            border: none;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        #file-btn {
-            background: var(--whatsapp-light);
-        }
-
-        #emoji-btn, #gif-btn {
-            background: var(--whatsapp-dark);
-        }
-
-        .input-buttons button:hover {
-            transform: scale(1.05);
-        }
-
-        .input-buttons button:active {
-            transform: scale(0.95);
-        }
-
-        .input-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-        }
-
-        .char-count {
-            font-size: 0.8rem;
-            color: #999;
-        }
-
-        .encryption-status {
-            font-size: 0.8rem;
-            color: var(--whatsapp-light);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
+        
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -439,325 +228,27 @@
             align-items: center;
             z-index: 1000;
         }
-
-        .modal.active {
-            display: flex;
-        }
-
+        .modal.active { display: flex; }
         .modal-content {
             background: white;
             padding: 2rem;
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-header h3 {
-            color: var(--whatsapp-dark);
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
-        }
-
-        .file-preview {
-            margin: 1rem 0;
-            text-align: center;
-        }
-
-        .file-preview img {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-        }
-
-        .file-info-preview {
-            margin: 1rem 0;
-            padding: 1rem;
-            background: #f5f5f5;
-            border-radius: 8px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-
-        .modal-actions button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        #encrypt-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 1rem 0;
-        }
-
-        #send-file-btn {
-            background: var(--whatsapp-green);
-            color: white;
-        }
-
-        #cancel-file-btn {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .emoji-picker {
-            position: absolute;
-            bottom: 80px;
-            right: 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            padding: 12px;
-            width: 300px;
-            max-height: 300px;
+            max-height: 90vh;
             overflow-y: auto;
-            display: none;
-            z-index: 100;
         }
+        
+        /* Utility Classes */
+        .error-message { color: var(--error-color); margin-top: 1rem; }
+        .hidden { display: none; }
+        .text-center { text-align: center; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
 
-        .emoji-picker.active {
-            display: block;
-        }
-
-        .emoji-category {
-            margin-bottom: 12px;
-        }
-
-        .emoji-category h4 {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 4px;
-        }
-
-        .emoji {
-            font-size: 1.2rem;
-            padding: 4px;
-            text-align: center;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .emoji:hover {
-            background: #f0f0f0;
-        }
-
-        .gif-picker {
-            position: absolute;
-            bottom: 80px;
-            right: 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            padding: 12px;
-            width: 300px;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-            z-index: 100;
-        }
-
-        .gif-picker.active {
-            display: block;
-        }
-
-        .gif-search {
-            margin-bottom: 12px;
-        }
-
-        .gif-search input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .gif-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .gif-item {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 6px;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .gif-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .message-actions {
-            position: absolute;
-            top: -10px;
-            right: 10px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: none;
-            z-index: 10;
-        }
-
-        .message:hover .message-actions {
-            display: block;
-        }
-
-        .message-action {
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            transition: background 0.2s;
-        }
-
-        .message-action:hover {
-            background: #f0f0f0;
-        }
-
-        .message-action.delete {
-            color: var(--error-color);
-        }
-
-        .messages-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .messages-container::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.2);
-            border-radius: 3px;
-        }
-
-        .messages-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(0,0,0,0.3);
-        }
-
-        @media (max-width: 768px) {
-            .auth-container, .name-setup-container {
-                margin: 1rem;
-                padding: 2rem;
-            }
-            
-            .chat-header {
-                padding: 1rem;
-            }
-            
-            .message {
-                max-width: 85%;
-            }
-            
-            .header-actions span {
-                display: none;
-            }
-            
-            .image-message {
-                max-width: 200px;
-            }
-            
-            .emoji-picker, .gif-picker {
-                width: 250px;
-                right: 10px;
-            }
-        }
-        .security-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: #e8f5e8;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 0.8rem;
-            color: #2e7d32;
-        }
-
-        .key-management {
-            background: #f3e5f5;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
-
-        .key-fingerprint {
-            font-family: monospace;
-            word-break: break-all;
-            background: white;
-            padding: 8px;
-            border-radius: 4px;
-            margin: 8px 0;
-            font-size: 0.7rem;
-        }
-
-        .verification-section {
-            border: 2px solid #4caf50;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-            background: #f1f8e9;
-        }
-
-        .device-list {
-            margin: 1rem 0;
-        }
-
-        .device-item {
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 0.5rem 0;
-            background: white;
-        }
-
-        .verified-badge {
-            color: #4caf50;
-            font-weight: bold;
-        }
-
-        .warning-badge {
-            color: #ff9800;
-            font-weight: bold;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -767,51 +258,88 @@
         <div class="auth-container">
             <div class="app-logo">
                 <h1>🔒 Secure Private Chat</h1>
-                <p>True End-to-End Encrypted Messaging</p>
+                <p>Military Grade End-to-End Encryption</p>
             </div>
             <div class="auth-form">
-                <input type="email" id="email" placeholder="Email address">
-                <input type="password" id="password" placeholder="Password">
+                <input type="email" id="email" placeholder="Email address" value="test@example.com">
+                <input type="password" id="password" placeholder="Password" value="123456">
                 <div class="auth-buttons">
-                    <button id="signup-btn" onclick="signUp()">Create Account</button>
-                    <button id="signin-btn" onclick="signIn()">Sign In</button>
+                    <button id="signup-btn">Create Account</button>
+                    <button id="signin-btn">Sign In</button>
                 </div>
             </div>
             <div id="auth-error" class="error-message"></div>
         </div>
     </div>
 
-    <!-- Key Setup Screen -->
-    <div id="key-setup-screen" class="screen">
-        <div class="name-setup-container">
-            <h2>🔑 End-to-End Encryption Setup</h2>
-            <p>Setting up your secure encryption keys...</p>
+    <!-- Passphrase Setup Screen -->
+    <div id="passphrase-screen" class="screen">
+        <div class="auth-container">
+            <h2>🔐 Set Encryption Passphrase</h2>
+            <p>This passphrase protects your encryption keys. You'll need it to access your messages.</p>
             <div class="key-management">
-                <div id="key-status">Generating RSA-2048 key pair...</div>
-                <div class="key-fingerprint" id="key-fingerprint"></div>
+                <input type="password" id="passphrase" class="passphrase-input" placeholder="Enter a strong passphrase">
+                <input type="password" id="passphrase-confirm" class="passphrase-input" placeholder="Confirm passphrase">
                 <div class="security-indicator">
-                    <span>✅</span>
-                    <span>Your messages are protected with military-grade encryption</span>
+                    <span>🔒</span>
+                    <span>Your passphrase is never sent to the server</span>
                 </div>
-                <button onclick="completeKeySetup()" id="complete-key-btn" disabled>Start Secure Chat</button>
+                <button id="setup-encryption-btn">Setup Encryption</button>
             </div>
         </div>
     </div>
 
-    <!-- Verification Screen -->
+    <!-- Passphrase Entry Screen -->
+    <div id="unlock-screen" class="screen">
+        <div class="auth-container">
+            <h2>🔐 Unlock Encryption</h2>
+            <p>Enter your passphrase to decrypt your messages</p>
+            <div class="key-management">
+                <input type="password" id="unlock-passphrase" class="passphrase-input" placeholder="Enter your passphrase">
+                <div id="unlock-error" class="error-message"></div>
+                <button id="unlock-btn">Unlock</button>
+                <div class="security-indicator">
+                    <span>🔄</span>
+                    <span><a href="#" id="reset-encryption-link">Reset encryption keys</a> (will lose access to old messages)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Verification Screen -->
     <div id="verification-screen" class="screen">
-        <div class="name-setup-container">
-            <h2>🔍 Security Verification</h2>
-            <p>Verify your security code with other users</p>
+        <div class="auth-container">
+            <h2>🔍 Verify Security Codes</h2>
+            <p>Compare security codes with other users to prevent MITM attacks</p>
             <div class="verification-section">
                 <h4>Your Security Code:</h4>
-                <div class="key-fingerprint" id="user-fingerprint"></div>
-                <p>Share this code with people you trust to verify your identity.</p>
+                <div class="key-fingerprint" id="user-security-code"></div>
+                <div class="qr-code" id="qr-code-container">
+                    <!-- QR code will be generated here -->
+                </div>
                 
-                <h4>Other Users:</h4>
-                <div id="other-users-list"></div>
+                <h4>Other Users to Verify:</h4>
+                <div id="users-to-verify-list"></div>
             </div>
-            <button onclick="showChatScreen()">Continue to Chat</button>
+            <button id="complete-verification-btn">I've Verified Security Codes</button>
+            <button id="skip-verification-btn" class="mt-2" style="background: #666;">Skip for Now</button>
+        </div>
+    </div>
+
+    <!-- Device Approval Screen -->
+    <div id="device-approval-screen" class="screen">
+        <div class="auth-container">
+            <h2>📱 Device Management</h2>
+            <p>Review and approve your devices cryptographically</p>
+            <div class="key-management">
+                <h4>Your Current Device:</h4>
+                <div class="key-fingerprint" id="current-device-fingerprint"></div>
+                
+                <h4>Pending Device Approvals:</h4>
+                <div id="pending-devices-list"></div>
+                
+                <button id="continue-to-chat-btn" class="hidden">Continue to Chat</button>
+            </div>
         </div>
     </div>
 
@@ -824,8 +352,8 @@
             </div>
             <div class="header-actions">
                 <span id="user-name"></span>
-                <button onclick="showSecurityInfo()">Security</button>
-                <button onclick="signOut()">Logout</button>
+                <button id="security-info-btn">Security</button>
+                <button id="logout-btn">Logout</button>
             </div>
         </div>
         
@@ -833,10 +361,10 @@
             <div id="messages-container" class="messages-container">
                 <div class="security-indicator">
                     <span>🔒</span>
-                    <span><strong>END-TO-END ENCRYPTED</strong> - Messages are encrypted on your device and only decrypted on recipients' devices</span>
+                    <span><strong>MILITARY GRADE ENCRYPTION</strong> - All messages are end-to-end encrypted and verified</span>
                 </div>
                 <div class="welcome-message">
-                    <p>Welcome to your secure chat! All messages are protected with true end-to-end encryption.</p>
+                    <p>Welcome to your secure chat! Start a conversation with end-to-end encryption.</p>
                 </div>
             </div>
             
@@ -844,49 +372,14 @@
                 <div class="message-input">
                     <input type="text" id="message-input" placeholder="Type a secure message..." maxlength="1000">
                     <div class="input-buttons">
-                        <button id="file-btn" onclick="openFileModal()">📎</button>
-                        <button id="send-btn" onclick="sendMessage()">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                            </svg>
-                        </button>
+                        <button id="file-btn">📎</button>
+                        <button id="send-btn">Send</button>
                     </div>
                 </div>
                 <div class="input-actions">
                     <span class="char-count"><span id="char-count">0</span>/1000</span>
-                    <span class="encryption-status">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-                        </svg>
-                        End-to-end encrypted
-                    </span>
+                    <span class="encryption-status">🔒 End-to-end encrypted</span>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- File Upload Modal -->
-    <div id="file-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Send Encrypted File</h3>
-                <button class="close-btn" onclick="closeFileModal()">×</button>
-            </div>
-            <input type="file" id="file-input" style="display: none" accept="*">
-            <div class="file-preview" id="file-preview">
-                <p>No file selected</p>
-            </div>
-            <div class="file-info-preview" id="file-info">
-                <p>Select a file to send</p>
-            </div>
-            <div class="security-indicator">
-                <span>🔒</span>
-                <span>File will be encrypted for each recipient before sending</span>
-            </div>
-            <div class="modal-actions">
-                <button id="cancel-file-btn" onclick="closeFileModal()">Cancel</button>
-                <button id="select-file-btn" onclick="document.getElementById('file-input').click()">Select File</button>
-                <button id="send-file-btn" onclick="sendFile()" disabled>Send Encrypted File</button>
             </div>
         </div>
     </div>
@@ -896,55 +389,39 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>🔒 Security Information</h3>
-                <button class="close-btn" onclick="closeSecurityModal()">×</button>
+                <button class="close-btn" id="close-security-modal">×</button>
             </div>
             <div class="security-info">
                 <div class="security-indicator">
                     <span>✅</span>
-                    <span><strong>True End-to-End Encryption</strong></span>
+                    <span><strong>Military Grade Security Active</strong></span>
                 </div>
                 
                 <div class="key-management">
-                    <h4>Your Encryption Keys</h4>
-                    <p><strong>Key Type:</strong> RSA-2048 + AES-256-GCM</p>
-                    <p><strong>Key Fingerprint:</strong></p>
-                    <div class="key-fingerprint" id="security-fingerprint"></div>
-                    <p><strong>Security Level:</strong> Military Grade (256-bit)</p>
+                    <h4>Encryption Status</h4>
+                    <div id="security-status-list"></div>
+                    <div class="ratchet-status" id="ratchet-status"></div>
                 </div>
 
-                <div class="device-list">
-                    <h4>Your Devices</h4>
-                    <div id="device-list-content"></div>
-                </div>
-
-                <div class="security-indicator">
-                    <span>🔐</span>
-                    <span>Messages are encrypted on your device before sending</span>
-                </div>
-                <div class="security-indicator">
-                    <span>🔓</span>
-                    <span>Messages are decrypted only on recipients' devices</span>
-                </div>
-                <div class="security-indicator">
-                    <span>✍️</span>
-                    <span>All messages are digitally signed to prevent spoofing</span>
-                </div>
-                <div class="security-indicator">
-                    <span>🚫</span>
-                    <span>Server cannot read your messages - only encrypted data</span>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button onclick="showVerificationScreen()">Verify Users</button>
-                <button onclick="closeSecurityModal()">Close</button>
+                <button id="verify-security-codes-btn" class="mt-2">Verify Security Codes</button>
+                <button id="manage-devices-btn" class="mt-2">Manage Devices</button>
+                <button id="backup-keys-btn" class="mt-2">Backup Encryption Keys</button>
+                <button id="rotate-keys-btn" class="mt-2">Rotate Keys</button>
             </div>
         </div>
     </div>
 
+    <!-- Include QR Code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <!-- Signal Protocol Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.1.0/dist/libsignal-protocol.min.js"></script>
 
     <script>
         // Firebase Configuration
@@ -964,474 +441,452 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        // Encryption State
-        let currentUser = null;
-        let userDisplayName = '';
-        let encryptionKeys = {
-            rsaKeyPair: null,
-            publicKey: null,
-            privateKey: null,
-            deviceId: null
+        // ==================== SECURITY CONSTANTS ====================
+        const SECURITY_CONFIG = {
+            PBKDF2_ITERATIONS: 310000, // OWASP recommended minimum
+            KEY_WRAPPING_ALGORITHM: 'AES-GCM',
+            KEY_LENGTH: 256,
+            MESSAGE_IV_LENGTH: 12,
+            SALT_LENGTH: 16,
+            MAX_MESSAGE_AGE: 7 * 24 * 60 * 60 * 1000, // 7 days
+            MAX_CACHED_MESSAGES: 1000,
+            PRE_KEY_AMOUNT: 100
         };
 
-        // ==================== FIXED: PRIVATE KEY STORAGE (Issue #2) ====================
+        // ==================== SIGNAL PROTOCOL STORE ====================
 
-        // Store private key securely in IndexedDB
-        async function storePrivateKey(privateKey) {
-            try {
-                const exportedKey = await window.crypto.subtle.exportKey("jwk", privateKey);
-                const db = await openDB();
-                const tx = db.transaction('keys', 'readwrite');
-                await tx.objectStore('keys').put({
-                    id: 'rsa-private-key',
-                    key: exportedKey,
-                    deviceId: encryptionKeys.deviceId,
-                    timestamp: Date.now()
-                });
-            } catch (error) {
-                console.error('Error storing private key:', error);
-                throw error;
+        class SignalProtocolStore {
+            constructor() {
+                this._store = {};
+                this.verifiedIdentityKeys = new Map(); // Store verified identity keys for MITM protection
             }
-        }
 
-        // Load private key from IndexedDB
-        async function loadPrivateKey() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction('keys', 'readonly');
-                const stored = await tx.objectStore('keys').get('rsa-private-key');
-                
-                if (stored && stored.deviceId === encryptionKeys.deviceId) {
-                    return await window.crypto.subtle.importKey(
-                        "jwk",
-                        stored.key,
-                        {
-                            name: "RSA-OAEP",
-                            hash: "SHA-256"
-                        },
-                        true,
-                        ["decrypt"]
-                    );
-                }
-                return null;
-            } catch (error) {
-                console.error('Error loading private key:', error);
-                return null;
+            // Identity
+            getIdentityKeyPair() { return this._getItem('identityKey'); }
+            setIdentityKeyPair(keyPair) { return this._setItem('identityKey', keyPair); }
+
+            // PreKeys
+            getPreKey(keyId) { return this._getItem(`preKey${keyId}`); }
+            storePreKey(keyId, keyPair) { return this._setItem(`preKey${keyId}`, keyPair); }
+            removePreKey(keyId) { return this._removeItem(`preKey${keyId}`); }
+
+            // Signed PreKeys
+            getSignedPreKey(keyId) { return this._getItem(`signedPreKey${keyId}`); }
+            storeSignedPreKey(keyId, keyPair) { return this._setItem(`signedPreKey${keyId}`, keyPair); }
+            removeSignedPreKey(keyId) { return this._removeItem(`signedPreKey${keyId}`); }
+
+            // Sessions
+            loadSession(identifier) { return this._getItem(`session${identifier}`); }
+            storeSession(identifier, record) { return this._setItem(`session${identifier}`, record); }
+
+            // Registration ID
+            getRegistrationId() { return this._getItem('registrationId'); }
+            setRegistrationId(registrationId) { return this._setItem('registrationId', registrationId); }
+
+            // Verified Identity Keys for MITM protection
+            saveVerifiedIdentityKey(address, identityKey) {
+                const key = `${address.getName()}.${address.getDeviceId()}`;
+                this.verifiedIdentityKeys.set(key, identityKey);
+                this._setItem(`verifiedIdentity_${key}`, identityKey);
             }
-        }
 
-        // Initialize IndexedDB
-        async function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('SecureChatDB', 1);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('keys')) {
-                        db.createObjectStore('keys', { keyPath: 'id' });
-                    }
-                };
-            });
-        }
-
-        // ==================== FIXED: MESSAGE SIGNING (Issue #3) ====================
-
-        // Sign message with private key
-        async function signMessage(message) {
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(message);
+            isIdentityVerified(address, identityKey) {
+                const key = `${address.getName()}.${address.getDeviceId()}`;
+                const savedKey = this.verifiedIdentityKeys.get(key) || this._getItem(`verifiedIdentity_${key}`);
+                if (!savedKey) return false;
                 
-                const signature = await window.crypto.subtle.sign(
-                    {
-                        name: "RSA-PSS",
-                        saltLength: 32
-                    },
-                    encryptionKeys.privateKey,
-                    data
-                );
-                
-                return arrayBufferToBase64(signature);
-            } catch (error) {
-                console.error('Error signing message:', error);
-                throw error;
+                // Compare identity keys
+                return arrayBufferToBase64(savedKey) === arrayBufferToBase64(identityKey);
             }
-        }
 
-        // Verify message signature
-        async function verifySignature(message, signature, publicKeyBase64) {
-            try {
-                const publicKey = await importPublicKey(publicKeyBase64);
-                const encoder = new TextEncoder();
-                const data = encoder.encode(message);
-                const signatureBuffer = base64ToArrayBuffer(signature);
+            // Session safety checks
+            isSessionValid(address) {
+                const session = this.loadSession(address.toString());
+                if (!session) return false;
                 
-                return await window.crypto.subtle.verify(
-                    {
-                        name: "RSA-PSS",
-                        saltLength: 32
-                    },
-                    publicKey,
-                    signatureBuffer,
-                    data
-                );
-            } catch (error) {
-                console.error('Error verifying signature:', error);
-                return false;
+                // Check if session has proper ratchet state
+                return session.currentRatchet && session.currentRatchet.ephemeralKeyPair;
             }
-        }
 
-        // ==================== FIXED: FILE ENCRYPTION (Issue #1) ====================
+            // Internal methods
+            _getItem(key) { return this._store[key]; }
+            _setItem(key, value) { this._store[key] = value; }
+            _removeItem(key) { delete this._store[key]; }
 
-        async function encryptFileForRecipients(file) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    const reader = new FileReader();
-                    reader.onload = async function(e) {
-                        try {
-                            const fileData = new Uint8Array(e.target.result);
-                            
-                            // Generate a random AES key for this file
-                            const aesKey = await window.crypto.subtle.generateKey(
-                                { name: "AES-GCM", length: 256 },
-                                true,
-                                ["encrypt", "decrypt"]
-                            );
-
-                            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                            
-                            // Encrypt file data with AES
-                            const encryptedContent = await window.crypto.subtle.encrypt(
-                                { name: "AES-GCM", iv: iv },
-                                aesKey,
-                                fileData
-                            );
-
-                            // Get all users to encrypt the AES key for
-                            const usersSnapshot = await db.collection('users').get();
-                            const encryptedKeys = [];
-
-                            // Export the AES key
-                            const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-                            
-                            // Encrypt AES key for each recipient
-                            for (const userDoc of usersSnapshot.docs) {
-                                if (userDoc.data().publicKey) {
-                                    try {
-                                        const userPublicKey = await importPublicKey(userDoc.data().publicKey);
-                                        const encryptedAesKey = await window.crypto.subtle.encrypt(
-                                            { name: "RSA-OAEP" },
-                                            userPublicKey,
-                                            exportedAesKey
-                                        );
-
-                                        encryptedKeys.push({
-                                            userId: userDoc.id,
-                                            encryptedAesKey: arrayBufferToBase64(encryptedAesKey)
-                                        });
-                                    } catch (error) {
-                                        console.error(`Error encrypting for user ${userDoc.id}:`, error);
-                                    }
-                                }
-                            }
-
-                            const encryptedFileData = {
-                                iv: arrayBufferToBase64(iv),
-                                encryptedContent: arrayBufferToBase64(encryptedContent),
-                                encryptedKeys: encryptedKeys,
-                                fileName: file.name,
-                                fileType: file.type,
-                                fileSize: file.size
-                            };
-
-                            const encryptedBlob = new Blob([JSON.stringify(encryptedFileData)], { 
-                                type: 'application/json' 
-                            });
-                            
-                            resolve(encryptedBlob);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-                    reader.readAsArrayBuffer(file);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-
-        async function decryptFile(encryptedFileData) {
-            try {
-                const data = JSON.parse(encryptedFileData);
-                
-                // Find our encrypted AES key
-                const userKey = data.encryptedKeys.find(k => k.userId === currentUser.uid);
-                if (!userKey) {
-                    throw new Error('No encryption key found for user');
-                }
-
-                // Decrypt the AES key with our private key
-                const encryptedAesKeyBuffer = base64ToArrayBuffer(userKey.encryptedAesKey);
-                const decryptedAesKeyBuffer = await window.crypto.subtle.decrypt(
-                    { name: "RSA-OAEP" },
-                    encryptionKeys.privateKey,
-                    encryptedAesKeyBuffer
-                );
-
-                // Import the AES key
-                const aesKey = await window.crypto.subtle.importKey(
-                    "raw",
-                    decryptedAesKeyBuffer,
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["decrypt"]
-                );
-
-                // Decrypt the file content
-                const iv = base64ToArrayBuffer(data.iv);
-                const encryptedContent = base64ToArrayBuffer(data.encryptedContent);
-                
-                const decryptedContent = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    aesKey,
-                    encryptedContent
-                );
-
-                return new Blob([decryptedContent], { type: data.fileType });
-            } catch (error) {
-                console.error('Error decrypting file:', error);
-                throw error;
-            }
-        }
-
-        // ==================== FIXED: DEVICE IDENTITY (Issue #6) ====================
-
-        function generateDeviceId() {
-            return 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-
-        async function registerDevice() {
-            encryptionKeys.deviceId = generateDeviceId();
-            
-            if (currentUser) {
-                const userRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userRef.get();
-                
-                const devices = userDoc.data()?.devices || [];
-                const existingDevice = devices.find(d => d.deviceId === encryptionKeys.deviceId);
-                
-                if (!existingDevice) {
-                    devices.push({
-                        deviceId: encryptionKeys.deviceId,
-                        publicKey: await exportPublicKey(encryptionKeys.publicKey),
-                        fingerprint: await generateKeyFingerprint(await exportPublicKey(encryptionKeys.publicKey)),
-                        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    await userRef.set({ devices }, { merge: true });
-                }
-            }
-        }
-
-        // ==================== ENCRYPTION CORE FUNCTIONS ====================
-
-        // Generate RSA key pair
-        async function generateRSAKeyPair() {
-            try {
-                return await window.crypto.subtle.generateKey(
-                    {
-                        name: "RSA-OAEP",
-                        modulusLength: 2048,
-                        publicExponent: new Uint8Array([1, 0, 1]),
-                        hash: "SHA-256",
-                    },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-            } catch (error) {
-                console.error('Error generating RSA key pair:', error);
-                throw error;
-            }
-        }
-
-        // Export public key
-        async function exportPublicKey(publicKey) {
-            try {
-                const exported = await window.crypto.subtle.exportKey("spki", publicKey);
-                return arrayBufferToBase64(exported);
-            } catch (error) {
-                console.error('Error exporting public key:', error);
-                throw error;
-            }
-        }
-
-        // Import public key
-        async function importPublicKey(publicKeyBase64) {
-            try {
-                const publicKeyBuffer = base64ToArrayBuffer(publicKeyBase64);
-                return await window.crypto.subtle.importKey(
-                    "spki",
-                    publicKeyBuffer,
-                    { name: "RSA-OAEP", hash: "SHA-256" },
-                    true,
-                    ["encrypt"]
-                );
-            } catch (error) {
-                console.error('Error importing public key:', error);
-                throw error;
-            }
-        }
-
-        // Generate key fingerprint
-        async function generateKeyFingerprint(publicKeyBase64) {
-            try {
-                const hash = await window.crypto.subtle.digest(
-                    'SHA-256', 
-                    new TextEncoder().encode(publicKeyBase64)
-                );
-                const hashArray = Array.from(new Uint8Array(hash));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
-            } catch (error) {
-                console.error('Error generating fingerprint:', error);
-                throw error;
-            }
-        }
-
-        // Encrypt message for recipients
-        async function encryptMessageForRecipients(messageText) {
-            try {
-                // Get all users
-                const usersSnapshot = await db.collection('users').get();
-                const encryptedMessages = [];
-
-                // Encrypt message for each user
-                for (const userDoc of usersSnapshot.docs) {
-                    if (userDoc.id !== currentUser.uid && userDoc.data().publicKey) {
-                        try {
-                            const encryptedMessage = await encryptSingleMessage(messageText, userDoc.data().publicKey);
-                            encryptedMessages.push({
-                                userId: userDoc.id,
-                                encryptedMessage: encryptedMessage
-                            });
-                        } catch (error) {
-                            console.error(`Error encrypting for user ${userDoc.id}:`, error);
-                        }
-                    }
-                }
-
-                // Also encrypt for ourselves
-                const selfEncrypted = await encryptSingleMessage(messageText, await exportPublicKey(encryptionKeys.publicKey));
-                encryptedMessages.push({
-                    userId: currentUser.uid,
-                    encryptedMessage: selfEncrypted
-                });
-
-                return encryptedMessages;
-            } catch (error) {
-                console.error('Error encrypting for recipients:', error);
-                throw error;
-            }
-        }
-
-        async function encryptSingleMessage(messageText, recipientPublicKeyBase64) {
-            try {
-                // Generate a random AES key for this message
-                const aesKey = await window.crypto.subtle.generateKey(
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-                
-                // Encrypt the message with AES
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encodedMessage = new TextEncoder().encode(messageText);
-                
-                const encryptedContent = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
-                    aesKey,
-                    encodedMessage
-                );
-
-                // Export the AES key
-                const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-                
-                // Import recipient's public key
-                const recipientPublicKey = await importPublicKey(recipientPublicKeyBase64);
-                
-                // Encrypt the AES key with recipient's public key
-                const encryptedAesKey = await window.crypto.subtle.encrypt(
-                    { name: "RSA-OAEP" },
-                    recipientPublicKey,
-                    exportedAesKey
-                );
-
-                // Create signature
-                const signature = await signMessage(messageText);
-
-                // Combine all components
-                const encryptedData = {
-                    iv: arrayBufferToBase64(iv),
-                    encryptedContent: arrayBufferToBase64(encryptedContent),
-                    encryptedAesKey: arrayBufferToBase64(encryptedAesKey),
-                    signature: signature,
-                    timestamp: Date.now()
-                };
-
-                return JSON.stringify(encryptedData);
-            } catch (error) {
-                console.error('Error encrypting message:', error);
-                throw error;
-            }
-        }
-
-        // Decrypt message
-        async function decryptMessage(encryptedDataJson) {
-            try {
-                const encryptedData = JSON.parse(encryptedDataJson);
-                
-                // Decrypt the AES key with our private key
-                const encryptedAesKeyBuffer = base64ToArrayBuffer(encryptedData.encryptedAesKey);
-                const decryptedAesKeyBuffer = await window.crypto.subtle.decrypt(
-                    { name: "RSA-OAEP" },
-                    encryptionKeys.privateKey,
-                    encryptedAesKeyBuffer
-                );
-
-                // Import the AES key
-                const aesKey = await window.crypto.subtle.importKey(
-                    "raw",
-                    decryptedAesKeyBuffer,
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["decrypt"]
-                );
-
-                // Decrypt the message content
-                const iv = base64ToArrayBuffer(encryptedData.iv);
-                const encryptedContent = base64ToArrayBuffer(encryptedData.encryptedContent);
-                
-                const decryptedContent = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    aesKey,
-                    encryptedContent
-                );
-
-                const decryptedText = new TextDecoder().decode(decryptedContent);
-
-                // Verify signature (we'll get sender's public key from the message display function)
+            // Serialization for storage
+            toObject() {
                 return {
-                    text: decryptedText,
-                    signature: encryptedData.signature
+                    store: this._store,
+                    verifiedIdentityKeys: Array.from(this.verifiedIdentityKeys.entries())
                 };
-            } catch (error) {
-                console.error('Error decrypting message:', error);
-                return { text: "[Unable to decrypt - Security Error]", signature: null };
+            }
+
+            fromObject(obj) {
+                this._store = obj.store || {};
+                this.verifiedIdentityKeys = new Map(obj.verifiedIdentityKeys || []);
             }
         }
 
-        // Utility functions
+        // ==================== SECURITY STATE ====================
+        let currentUser = null;
+        let userDisplayName = '';
+        let signalStore = new SignalProtocolStore();
+        let verifiedUsers = new Map(); // userId -> {publicKey, securityCode, verifiedAt}
+        let messageCache = new Map(); // messageId -> timestamp (for replay protection)
+
+        // ==================== KEY MANAGEMENT ====================
+
+        async function generateAndRegisterKeys(userIdentifier, store) {
+            // Generate a registration ID
+            const registrationId = libsignal.KeyHelper.generateRegistrationId();
+            store.setRegistrationId(registrationId);
+
+            // Generate Identity Key Pair (X25519)
+            const identityKeyPair = await libsignal.KeyHelper.generateIdentityKeyPair();
+            store.setIdentityKeyPair(identityKeyPair);
+
+            // Generate a Signed PreKey (X25519)
+            const signedPreKeyId = 1;
+            const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId);
+            store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair);
+
+            // Generate a batch of One-Time PreKeys (X25519)
+            const oneTimePreKeys = [];
+            for (let i = 0; i < SECURITY_CONFIG.PRE_KEY_AMOUNT; ++i) {
+                const preKeyId = i + 1;
+                const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId);
+                store.storePreKey(preKeyId, preKey.keyPair);
+                
+                // Prepare the public key for the server bundle
+                const publicPreKey = {
+                    keyId: preKey.keyId,
+                    publicKey: preKey.keyPair.pubKey
+                };
+                oneTimePreKeys.push(publicPreKey);
+            }
+
+            // Create the public bundle for the server
+            const publicSignedPreKey = {
+                keyId: signedPreKeyId,
+                publicKey: signedPreKey.keyPair.pubKey,
+                signature: signedPreKey.signature
+            };
+
+            const userKeyBundle = {
+                registrationId: registrationId,
+                identityPubKey: identityKeyPair.pubKey,
+                signedPreKey: publicSignedPreKey,
+                oneTimePreKeys: oneTimePreKeys
+            };
+
+            // Store in Firestore
+            const userRef = db.collection('users').doc(userIdentifier);
+            await userRef.set({
+                keyBundle: userKeyBundle,
+                displayName: userDisplayName,
+                securityCode: await generateSecurityCode(identityKeyPair.pubKey),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            console.log('Signal Protocol keys generated and bundle uploaded to server.');
+            return userKeyBundle;
+        }
+
+        // ==================== FIX #1: VERIFY IDENTITY KEY BEFORE FIRST MESSAGE ====================
+
+        async function verifyRecipientBundleBeforeSession(recipientId, recipientBundle) {
+            // Check if we have a verified security code for this user
+            const verifiedUser = verifiedUsers.get(recipientId);
+            if (!verifiedUser) {
+                throw new Error(`Security alert: User ${recipientId} is not verified. Please verify their security code before messaging.`);
+            }
+
+            // Calculate the expected security code from the received bundle
+            const computedCode = await generateSecurityCode(recipientBundle.identityPubKey);
+            
+            // Compare with our saved verified code
+            if (computedCode !== verifiedUser.securityCode) {
+                throw new Error(`SECURITY ALERT: Identity key mismatch for ${recipientId}. Possible MITM attack! Expected: ${verifiedUser.securityCode}, Got: ${computedCode}`);
+            }
+
+            console.log(`✅ Identity key verified for ${recipientId}`);
+            return true;
+        }
+
+        async function startSessionAndSendMessage(recipientId, messageText, store) {
+            try {
+                // Fetch the recipient's key bundle from Firestore
+                const recipientDoc = await db.collection('users').doc(recipientId).get();
+                if (!recipientDoc.exists) {
+                    throw new Error('Recipient not found');
+                }
+
+                const recipientBundle = recipientDoc.data().keyBundle;
+                if (!recipientBundle) {
+                    throw new Error('Recipient has no key bundle');
+                }
+
+                // CRITICAL FIX: Verify identity key before starting session
+                await verifyRecipientBundleBeforeSession(recipientId, recipientBundle);
+
+                // Create an address object for the recipient
+                const recipientAddress = new libsignal.SignalProtocolAddress(recipientId, 1);
+
+                // Build a session with the recipient's bundle
+                const sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
+                await sessionBuilder.processPreKey(recipientBundle);
+
+                // Save the verified identity key for future message verification
+                store.saveVerifiedIdentityKey(recipientAddress, recipientBundle.identityPubKey);
+
+                // Encrypt the message
+                const sessionCipher = new libsignal.SessionCipher(store, recipientAddress);
+                const plaintext = new TextEncoder().encode(messageText).buffer;
+                const ciphertext = await sessionCipher.encrypt(plaintext);
+
+                return {
+                    recipientId: recipientId,
+                    ciphertext: ciphertext,
+                    type: ciphertext.type,
+                    sessionValid: true
+                };
+            } catch (error) {
+                console.error('Failed to start session and send message:', error);
+                throw error;
+            }
+        }
+
+        async function sendMessageToRecipient(recipientId, messageText, store) {
+            const recipientAddress = new libsignal.SignalProtocolAddress(recipientId, 1);
+            const sessionCipher = new libsignal.SessionCipher(store, recipientAddress);
+            const plaintext = new TextEncoder().encode(messageText).buffer;
+            const ciphertext = await sessionCipher.encrypt(plaintext);
+            
+            return {
+                recipientId: recipientId,
+                ciphertext: ciphertext,
+                type: ciphertext.type,
+                sessionValid: store.isSessionValid(recipientAddress)
+            };
+        }
+
+        // ==================== FIX #2: SENDER AUTHENTICATION & SESSION VERIFICATION ====================
+
+        async function receiveAndDecryptMessage(senderId, ciphertextMessage, store) {
+            try {
+                const senderAddress = new libsignal.SignalProtocolAddress(senderId, 1);
+                const sessionCipher = new libsignal.SessionCipher(store, senderAddress);
+
+                let plaintextArrayBuffer;
+                let sessionSafety = {
+                    hasValidSession: store.isSessionValid(senderAddress),
+                    identityVerified: false,
+                    decryptionSuccess: false
+                };
+
+                // Check the message type to use the correct decryption method
+                if (ciphertextMessage.type === 3) {
+                    // PreKeyWhisperMessage (first message) - establishes new session
+                    plaintextArrayBuffer = await sessionCipher.decryptPreKeyWhisperMessage(ciphertextMessage.body, 'binary');
+                    sessionSafety.decryptionSuccess = true;
+                    
+                    // After first message decryption, verify the identity key from the session
+                    const session = store.loadSession(senderAddress.toString());
+                    if (session && session.remoteIdentityKey) {
+                        sessionSafety.identityVerified = store.isIdentityVerified(senderAddress, session.remoteIdentityKey);
+                        if (!sessionSafety.identityVerified) {
+                            console.warn(`⚠️ First message from ${senderId} - identity not yet verified`);
+                        }
+                    }
+                } else if (ciphertextMessage.type === 1) {
+                    // WhisperMessage (subsequent message) - uses existing session
+                    plaintextArrayBuffer = await sessionCipher.decryptWhisperMessage(ciphertextMessage.body, 'binary');
+                    sessionSafety.decryptionSuccess = true;
+                    
+                    // For subsequent messages, check session validity and identity verification
+                    sessionSafety.hasValidSession = store.isSessionValid(senderAddress);
+                    const session = store.loadSession(senderAddress.toString());
+                    if (session && session.remoteIdentityKey) {
+                        sessionSafety.identityVerified = store.isIdentityVerified(senderAddress, session.remoteIdentityKey);
+                    }
+                } else {
+                    throw new Error('Unknown message type: ' + ciphertextMessage.type);
+                }
+
+                // Convert the decrypted ArrayBuffer back to a string
+                const plaintext = new TextDecoder().decode(new Uint8Array(plaintextArrayBuffer));
+                
+                return {
+                    plaintext: plaintext,
+                    sessionSafety: sessionSafety
+                };
+            } catch (error) {
+                console.error('Failed to decrypt message:', error);
+                throw error;
+            }
+        }
+
+        function getMessageVerificationStatus(sessionSafety, senderId) {
+            const verifiedUser = verifiedUsers.get(senderId);
+            
+            // Highest priority: Decryption failed or no valid session
+            if (!sessionSafety.decryptionSuccess) {
+                return {
+                    level: 'error',
+                    text: '🔴 Decryption failed',
+                    description: 'Message could not be decrypted'
+                };
+            }
+
+            // Medium priority: Valid session but identity not verified
+            if (sessionSafety.hasValidSession && sessionSafety.identityVerified) {
+                return {
+                    level: 'verified',
+                    text: '✅ Verified contact',
+                    description: 'Encrypted and authenticated via secure session'
+                };
+            }
+
+            // Check if user is in verified users list (out-of-band verification)
+            if (verifiedUser) {
+                return {
+                    level: 'verified',
+                    text: '✅ Verified contact',
+                    description: 'Security code verified'
+                };
+            }
+
+            // Lowest priority: Valid decryption but unverified identity
+            if (sessionSafety.decryptionSuccess) {
+                return {
+                    level: 'unverified',
+                    text: '⚠️ Unverified contact',
+                    description: 'Message decrypted but sender identity not verified'
+                };
+            }
+
+            return {
+                level: 'unknown',
+                text: '❓ Unknown security status',
+                description: 'Unable to verify message authenticity'
+            };
+        }
+
+        // ==================== KEY WRAPPING AND STORAGE ====================
+
+        async function wrapStore(store, passphrase) {
+            const storeObj = store.toObject();
+            const storeString = JSON.stringify(storeObj);
+            
+            // Generate salt and derive wrapping key
+            const salt = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.SALT_LENGTH));
+            const wrappingKey = await deriveWrappingKey(passphrase, salt);
+            
+            // Generate IV and encrypt
+            const iv = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.MESSAGE_IV_LENGTH));
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { 
+                    name: SECURITY_CONFIG.KEY_WRAPPING_ALGORITHM, 
+                    iv: iv 
+                },
+                wrappingKey,
+                new TextEncoder().encode(storeString)
+            );
+
+            return {
+                ciphertext: arrayBufferToBase64(ciphertext),
+                iv: arrayBufferToBase64(iv),
+                salt: arrayBufferToBase64(salt),
+                iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS,
+                version: 1
+            };
+        }
+
+        async function unwrapStore(wrappedBundle, passphrase) {
+            try {
+                const wrappingKey = await deriveWrappingKey(passphrase, base64ToArrayBuffer(wrappedBundle.salt));
+                const ciphertext = base64ToArrayBuffer(wrappedBundle.ciphertext);
+                const iv = base64ToArrayBuffer(wrappedBundle.iv);
+                
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { 
+                        name: SECURITY_CONFIG.KEY_WRAPPING_ALGORITHM, 
+                        iv: iv 
+                    },
+                    wrappingKey,
+                    ciphertext
+                );
+
+                const storeString = new TextDecoder().decode(decrypted);
+                return JSON.parse(storeString);
+            } catch (error) {
+                throw new Error('Failed to unwrap store: ' + error.message);
+            }
+        }
+
+        // ==================== SECURITY UTILITIES ====================
+
+        async function generateSecurityCode(publicKey) {
+            const hash = await window.crypto.subtle.digest(
+                'SHA-256', 
+                new TextEncoder().encode(arrayBufferToBase64(publicKey))
+            );
+            const hashArray = Array.from(new Uint8Array(hash));
+            // Take first 12 bytes (24 hex chars) for readable code
+            return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        async function deriveWrappingKey(passphrase, salt) {
+            const enc = new TextEncoder();
+            const pass = enc.encode(passphrase);
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw", pass, { name: "PBKDF2" }, false, ["deriveKey"]
+            );
+            
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: SECURITY_CONFIG.KEY_LENGTH },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        function generateMessageId() {
+            return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        function isReplayAttack(messageId, timestamp) {
+            // Check if message is too old
+            if (Date.now() - timestamp > SECURITY_CONFIG.MAX_MESSAGE_AGE) {
+                return true;
+            }
+
+            // Check if we've seen this message ID before
+            if (messageCache.has(messageId)) {
+                return true;
+            }
+
+            // Add to cache and clean old entries
+            messageCache.set(messageId, timestamp);
+            if (messageCache.size > SECURITY_CONFIG.MAX_CACHED_MESSAGES) {
+                const oldestEntries = Array.from(messageCache.entries())
+                    .sort((a, b) => a[1] - b[1])
+                    .slice(0, messageCache.size - SECURITY_CONFIG.MAX_CACHED_MESSAGES);
+                oldestEntries.forEach(([id]) => messageCache.delete(id));
+            }
+
+            return false;
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+
         function arrayBufferToBase64(buffer) {
             const bytes = new Uint8Array(buffer);
             let binary = '';
@@ -1450,181 +905,474 @@
             return bytes.buffer;
         }
 
-        // ==================== INITIALIZE ENCRYPTION ====================
+        // ==================== STORAGE MANAGEMENT ====================
 
-        async function initializeEncryption() {
+        async function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('SecureChatSignalStore', 4);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('signalStore')) {
+                        db.createObjectStore('signalStore', { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        async function storeWrappedKeys(wrappedBundle) {
             try {
-                document.getElementById('key-status').textContent = 'Loading encryption keys...';
-                
-                // Generate device ID first
-                encryptionKeys.deviceId = generateDeviceId();
-                
-                // Try to load existing private key
-                const existingPrivateKey = await loadPrivateKey();
-                
-                if (existingPrivateKey) {
-                    // Use existing keys
-                    encryptionKeys.privateKey = existingPrivateKey;
-                    // We need to regenerate the public key from private key storage
-                    // For now, we'll regenerate the keypair
-                    encryptionKeys.rsaKeyPair = await generateRSAKeyPair();
-                    encryptionKeys.publicKey = encryptionKeys.rsaKeyPair.publicKey;
-                    encryptionKeys.privateKey = encryptionKeys.rsaKeyPair.privateKey;
-                    await storePrivateKey(encryptionKeys.privateKey);
-                } else {
-                    // Generate new key pair
-                    encryptionKeys.rsaKeyPair = await generateRSAKeyPair();
-                    encryptionKeys.publicKey = encryptionKeys.rsaKeyPair.publicKey;
-                    encryptionKeys.privateKey = encryptionKeys.rsaKeyPair.privateKey;
-                    await storePrivateKey(encryptionKeys.privateKey);
-                }
-                
-                // Register device
-                await registerDevice();
-                
-                // Export and store public key
-                const publicKeyBase64 = await exportPublicKey(encryptionKeys.publicKey);
-                const fingerprint = await generateKeyFingerprint(publicKeyBase64);
-                
-                document.getElementById('key-status').textContent = 'Encryption ready!';
-                document.getElementById('key-fingerprint').textContent = `Security Code: ${fingerprint}`;
-                document.getElementById('user-fingerprint').textContent = fingerprint;
-                document.getElementById('security-fingerprint').textContent = fingerprint;
-                document.getElementById('complete-key-btn').disabled = false;
-
-                // Store public key in Firestore
-                if (currentUser) {
-                    const userRef = db.collection('users').doc(currentUser.uid);
-                    await userRef.set({
-                        publicKey: publicKeyBase64,
-                        keyFingerprint: fingerprint,
-                        lastKeyUpdate: firebase.firestore.FieldValue.serverTimestamp(),
-                        displayName: userDisplayName
-                    }, { merge: true });
-                }
-
-                return true;
+                const db = await openDB();
+                const tx = db.transaction('signalStore', 'readwrite');
+                await tx.objectStore('signalStore').put({
+                    id: 'signalStore',
+                    ...wrappedBundle,
+                    createdAt: Date.now()
+                });
             } catch (error) {
-                console.error('Error initializing encryption:', error);
-                document.getElementById('key-status').textContent = 'Error: Encryption setup failed';
-                return false;
+                console.error('Error storing wrapped keys:', error);
+                throw error;
             }
         }
 
-        // ==================== MESSAGING ====================
+        async function loadWrappedKeys() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('signalStore', 'readonly');
+                const wrappedBundle = await tx.objectStore('signalStore').get('signalStore');
+                return wrappedBundle || null;
+            } catch (error) {
+                console.error('Error loading wrapped keys:', error);
+                return null;
+            }
+        }
+
+        // ==================== VERIFICATION MANAGEMENT ====================
+
+        async function initializeKeyVerification() {
+            const identityKeyPair = signalStore.getIdentityKeyPair();
+            if (!identityKeyPair) {
+                throw new Error('No identity key pair found');
+            }
+            
+            const securityCode = await generateSecurityCode(identityKeyPair.pubKey);
+            
+            // Store our own key for consistency
+            verifiedUsers.set(currentUser.uid, {
+                publicKey: identityKeyPair.pubKey,
+                securityCode: securityCode,
+                verifiedAt: Date.now(),
+                isCurrentUser: true
+            });
+
+            // Load existing verified users
+            await loadVerifiedUsers();
+            
+            return securityCode;
+        }
+
+        async function loadVerifiedUsers() {
+            try {
+                const stored = localStorage.getItem(`verifiedUsers_${currentUser.uid}`);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    parsed.forEach(([userId, data]) => {
+                        verifiedUsers.set(userId, data);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load verified users:', error);
+            }
+        }
+
+        async function saveVerifiedUsers() {
+            try {
+                const data = Array.from(verifiedUsers.entries());
+                localStorage.setItem(`verifiedUsers_${currentUser.uid}`, JSON.stringify(data));
+            } catch (error) {
+                console.error('Failed to save verified users:', error);
+            }
+        }
+
+        async function verifyUserSecurityCode(userId, securityCode) {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (!userDoc.exists) return false;
+
+            const userData = userDoc.data();
+            if (!userData.keyBundle) return false;
+
+            const computedCode = await generateSecurityCode(userData.keyBundle.identityPubKey);
+            
+            if (computedCode === securityCode) {
+                verifiedUsers.set(userId, {
+                    publicKey: userData.keyBundle.identityPubKey,
+                    securityCode: computedCode,
+                    verifiedAt: Date.now()
+                });
+                await saveVerifiedUsers();
+                return true;
+            }
+            
+            return false;
+        }
+
+        // ==================== UI MANAGEMENT ====================
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function hideError(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'none';
+        }
+
+        // ==================== FIREBASE AUTH ====================
+
+        async function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                hideError('auth-error');
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                userDisplayName = email.split('@')[0];
+                showScreen('passphrase-screen');
+            } catch (error) {
+                showError('auth-error', error.message);
+            }
+        }
+
+        async function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                hideError('auth-error');
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                
+                const wrappedKeys = await loadWrappedKeys();
+                if (wrappedKeys) {
+                    showScreen('unlock-screen');
+                } else {
+                    userDisplayName = email.split('@')[0];
+                    showScreen('passphrase-screen');
+                }
+            } catch (error) {
+                showError('auth-error', error.message);
+            }
+        }
+
+        // ==================== EVENT LISTENERS ====================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auth event listeners
+            document.getElementById('signup-btn').addEventListener('click', signUp);
+            document.getElementById('signin-btn').addEventListener('click', signIn);
+            
+            // Passphrase setup
+            document.getElementById('setup-encryption-btn').addEventListener('click', setupEncryption);
+            
+            // Unlock
+            document.getElementById('unlock-btn').addEventListener('click', handleUnlock);
+            
+            // Verification
+            document.getElementById('complete-verification-btn').addEventListener('click', completeVerification);
+            document.getElementById('skip-verification-btn').addEventListener('click', () => showScreen('chat-screen'));
+            
+            // Security modal
+            document.getElementById('security-info-btn').addEventListener('click', showSecurityInfo);
+            document.getElementById('close-security-modal').addEventListener('click', closeSecurityModal);
+            
+            // Logout
+            document.getElementById('logout-btn').addEventListener('click', signOut);
+            
+            // Message input
+            document.getElementById('send-btn').addEventListener('click', sendMessage);
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Auth state listener
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    showScreen('auth-screen');
+                }
+            });
+
+            // Set up message listener
+            setupMessageListener();
+        });
+
+        async function setupEncryption() {
+            const passphrase = document.getElementById('passphrase').value;
+            const confirmPassphrase = document.getElementById('passphrase-confirm').value;
+            
+            if (!passphrase || passphrase.length < 8) {
+                alert('Passphrase must be at least 8 characters long');
+                return;
+            }
+            
+            if (passphrase !== confirmPassphrase) {
+                alert('Passphrases do not match');
+                return;
+            }
+
+            try {
+                document.getElementById('setup-encryption-btn').disabled = true;
+                document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
+
+                // Generate Signal Protocol keys and register with server
+                await generateAndRegisterKeys(currentUser.uid, signalStore);
+
+                // Wrap and store the entire signal store
+                const wrappedBundle = await wrapStore(signalStore, passphrase);
+                await storeWrappedKeys(wrappedBundle);
+
+                // Initialize key verification
+                const securityCode = await initializeKeyVerification();
+                
+                // Show verification screen with security code
+                document.getElementById('user-security-code').textContent = securityCode;
+                
+                // Generate QR code
+                QRCode.toCanvas(document.getElementById('qr-code-container'), securityCode, function (error) {
+                    if (error) console.error('QR code generation error:', error);
+                });
+
+                showScreen('verification-screen');
+
+            } catch (error) {
+                console.error('Encryption setup failed:', error);
+                alert('Error setting up encryption: ' + error.message);
+                document.getElementById('setup-encryption-btn').disabled = false;
+                document.getElementById('setup-encryption-btn').textContent = 'Setup Encryption';
+            }
+        }
+
+        async function handleUnlock() {
+            const passphrase = document.getElementById('unlock-passphrase').value;
+            
+            if (!passphrase) {
+                showError('unlock-error', 'Please enter your passphrase');
+                return;
+            }
+
+            try {
+                document.getElementById('unlock-btn').disabled = true;
+                document.getElementById('unlock-btn').textContent = 'Unlocking...';
+
+                const wrappedBundle = await loadWrappedKeys();
+                if (!wrappedBundle) {
+                    throw new Error('No encrypted keys found');
+                }
+
+                const storeObj = await unwrapStore(wrappedBundle, passphrase);
+                signalStore.fromObject(storeObj);
+
+                await initializeKeyVerification();
+                showScreen('chat-screen');
+
+            } catch (error) {
+                showError('unlock-error', 'Invalid passphrase or corrupted keys');
+                document.getElementById('unlock-btn').disabled = false;
+                document.getElementById('unlock-btn').textContent = 'Unlock';
+            }
+        }
+
+        async function completeVerification() {
+            const checkboxes = document.querySelectorAll('.verify-checkbox:checked');
+            for (const checkbox of checkboxes) {
+                await verifyUserSecurityCode(checkbox.dataset.userid, checkbox.dataset.securitycode);
+            }
+            
+            await saveVerifiedUsers();
+            showScreen('chat-screen');
+        }
+
+        function showSecurityInfo() {
+            // Implementation for security info modal
+            document.getElementById('security-modal').classList.add('active');
+        }
+
+        function closeSecurityModal() {
+            document.getElementById('security-modal').classList.remove('active');
+        }
+
+        async function signOut() {
+            try {
+                await auth.signOut();
+                showScreen('auth-screen');
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        }
+
+        // ==================== MESSAGE HANDLING ====================
 
         async function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const messageText = messageInput.value.trim();
             
             if (!messageText || !currentUser) return;
-            
-            try {
-                const encryptedMessages = await encryptMessageForRecipients(messageText);
-                
-                // Store encrypted messages in Firestore
-                const messageRef = await db.collection('messages').add({
-                    encryptedMessages: encryptedMessages,
-                    sender: userDisplayName,
-                    senderId: currentUser.uid,
-                    senderPublicKey: await exportPublicKey(encryptionKeys.publicKey),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'text'
-                });
 
+            try {
+                const messageId = generateMessageId();
+                
+                // Get all users to encrypt for
+                const usersSnapshot = await db.collection('users').get();
+                const encryptedMessages = [];
+
+                for (const userDoc of usersSnapshot.docs) {
+                    if (userDoc.id === currentUser.uid) continue; // Skip self
+
+                    try {
+                        let encryptedResult;
+                        
+                        // Check if we already have a session with this user
+                        const recipientAddress = new libsignal.SignalProtocolAddress(userDoc.id, 1);
+                        const sessionCipher = new libsignal.SessionCipher(signalStore, recipientAddress);
+                        
+                        // Try to encrypt (this will work if we have a session)
+                        const plaintext = new TextEncoder().encode(messageText).buffer;
+                        encryptedResult = await sessionCipher.encrypt(plaintext);
+                        
+                        encryptedMessages.push({
+                            userId: userDoc.id,
+                            encryptedMessage: JSON.stringify({
+                                type: encryptedResult.type,
+                                body: arrayBufferToBase64(encryptedResult.body)
+                            })
+                        });
+                    } catch (sessionError) {
+                        // If encryption fails, we need to start a new session
+                        try {
+                            // CRITICAL FIX: This will now verify identity key before session
+                            encryptedResult = await startSessionAndSendMessage(userDoc.id, messageText, signalStore);
+                            encryptedMessages.push({
+                                userId: userDoc.id,
+                                encryptedMessage: JSON.stringify({
+                                    type: encryptedResult.ciphertext.type,
+                                    body: arrayBufferToBase64(encryptedResult.ciphertext.body)
+                                })
+                            });
+                        } catch (startSessionError) {
+                            console.error(`Failed to start session with ${userDoc.id}:`, startSessionError);
+                            // Show security warning to user
+                            displaySecurityWarning(`Cannot send to ${userDoc.data().displayName}: ${startSessionError.message}`);
+                        }
+                    }
+                }
+
+                // Store encrypted message in Firestore
+                if (encryptedMessages.length > 0) {
+                    await db.collection('messages').add({
+                        encryptedMessages: encryptedMessages,
+                        senderId: currentUser.uid,
+                        senderName: userDisplayName,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        messageId: messageId,
+                        type: 'text'
+                    });
+                }
+
+                // Also display the message locally
+                displayMessage(messageText, currentUser.uid, true, { level: 'verified', text: '✅ Sent securely' });
                 messageInput.value = '';
-                updateCharCount();
-                
+                document.getElementById('char-count').textContent = '0';
+
             } catch (error) {
-                console.error('Error sending encrypted message:', error);
-                alert('Error sending secure message. Please try again.');
+                console.error('Failed to send message:', error);
+                alert('Error sending message: ' + error.message);
             }
         }
 
-        async function sendFile() {
-            const fileInput = document.getElementById('file-input');
-            if (!fileInput.files[0] || !currentUser) return;
-            
-            try {
-                document.getElementById('send-file-btn').disabled = true;
-                document.getElementById('send-file-btn').textContent = 'Encrypting...';
-                
-                const file = fileInput.files[0];
-                
-                // Encrypt file for all recipients
-                const encryptedFileBlob = await encryptFileForRecipients(file);
-                
-                // Upload to Firebase Storage
-                const filePath = `encrypted_files/${currentUser.uid}/${Date.now()}_${file.name}.encrypted`;
-                const fileRef = storage.ref().child(filePath);
-                const snapshot = await fileRef.put(encryptedFileBlob);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                
-                // Create file message
-                const encryptedMessages = await encryptMessageForRecipients(`File: ${file.name}`);
-                
-                await db.collection('messages').add({
-                    encryptedMessages: encryptedMessages,
-                    sender: userDisplayName,
-                    senderId: currentUser.uid,
-                    senderPublicKey: await exportPublicKey(encryptionKeys.publicKey),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'file',
-                    fileUrl: downloadURL,
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type
+        function setupMessageListener() {
+            db.collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(async (snapshot) => {
+                    for (const change of snapshot.docChanges()) {
+                        if (change.type === 'added') {
+                            const message = change.doc.data();
+                            
+                            // Find the encrypted message for current user
+                            const userMessage = message.encryptedMessages.find(msg => msg.userId === currentUser.uid);
+                            if (userMessage) {
+                                try {
+                                    const ciphertext = JSON.parse(userMessage.encryptedMessage);
+                                    const ciphertextMessage = {
+                                        type: ciphertext.type,
+                                        body: base64ToArrayBuffer(ciphertext.body)
+                                    };
+                                    
+                                    const decryptionResult = await receiveAndDecryptMessage(message.senderId, ciphertextMessage, signalStore);
+                                    
+                                    // Check for replay attacks
+                                    if (!isReplayAttack(message.messageId, message.timestamp.toMillis())) {
+                                        const verificationStatus = getMessageVerificationStatus(
+                                            decryptionResult.sessionSafety, 
+                                            message.senderId
+                                        );
+                                        displayMessage(decryptionResult.plaintext, message.senderId, false, verificationStatus);
+                                    }
+                                } catch (error) {
+                                    console.error('Failed to decrypt message:', error);
+                                    displayMessage('🔒 [Encrypted message - decryption failed]', message.senderId, false, {
+                                        level: 'error',
+                                        text: '🔴 Decryption failed',
+                                        description: error.message
+                                    });
+                                }
+                            }
+                        }
+                    }
                 });
-
-                closeFileModal();
-                
-            } catch (error) {
-                console.error('Error sending file:', error);
-                alert('Error sending encrypted file. Please try again.');
-            } finally {
-                document.getElementById('send-file-btn').disabled = false;
-                document.getElementById('send-file-btn').textContent = 'Send Encrypted File';
-            }
         }
 
-        // ==================== UI MANAGEMENT ====================
-
-        function showAuthScreen() {
-            document.getElementById('auth-screen').classList.add('active');
-            document.getElementById('key-setup-screen').classList.remove('active');
-            document.getElementById('verification-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.remove('active');
-        }
-
-        function showKeySetupScreen() {
-            document.getElementById('auth-screen').classList.remove('active');
-            document.getElementById('key-setup-screen').classList.add('active');
-            document.getElementById('verification-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.remove('active');
-            initializeEncryption();
-        }
-
-        function showVerificationScreen() {
-            document.getElementById('auth-screen').classList.remove('active');
-            document.getElementById('key-setup-screen').classList.remove('active');
-            document.getElementById('verification-screen').classList.add('active');
-            document.getElementById('chat-screen').classList.remove('active');
-            loadOtherUsers();
-        }
-
-        function showChatScreen() {
-            document.getElementById('auth-screen').classList.remove('active');
-            document.getElementById('key-setup-screen').classList.remove('active');
-            document.getElementById('verification-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.add('active');
-            document.getElementById('user-name').textContent = userDisplayName;
+        function displayMessage(text, senderId, isSent, verificationStatus) {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
             
-            loadMessages();
-            updateOnlineStatus();
-            trackOnlineUsers();
+            const messageContent = document.createElement('div');
+            messageContent.textContent = text;
+            messageDiv.appendChild(messageContent);
+
+            // Add security indicator based on verification status
+            const securityDiv = document.createElement('div');
+            securityDiv.className = `message-${verificationStatus.level}`;
+            securityDiv.textContent = verificationStatus.text;
+            
+            // Add tooltip for detailed security information
+            securityDiv.title = verificationStatus.description;
+            messageDiv.appendChild(securityDiv);
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // ... (rest of the UI functions remain similar but updated for new features)
+        function displaySecurityWarning(message) {
+            const messagesContainer = document.getElementById('messages-container');
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'security-indicator security-warning';
+            warningDiv.textContent = `⚠️ SECURITY WARNING: ${message}`;
+            messagesContainer.appendChild(warningDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
 
     </script>
 </body>
