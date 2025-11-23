@@ -122,6 +122,33 @@
             min-height: 20px;
         }
 
+        /* Name Setup Screen */
+        #name-setup-screen {
+            background: linear-gradient(135deg, var(--whatsapp-dark) 0%, var(--whatsapp-light) 100%);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .name-setup-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .name-setup-container h2 {
+            color: var(--whatsapp-dark);
+            margin-bottom: 1rem;
+        }
+
+        .name-setup-container p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
         /* Chat Screen Styles */
         #chat-screen {
             background: var(--chat-bg);
@@ -142,7 +169,7 @@
             margin-bottom: 0.2rem;
         }
 
-        #online-status {
+        #online-count {
             font-size: 0.8rem;
             color: #90ee90;
         }
@@ -153,7 +180,7 @@
             gap: 1rem;
         }
 
-        #user-email {
+        #user-name {
             font-size: 0.9rem;
             opacity: 0.9;
         }
@@ -233,11 +260,39 @@
             margin-bottom: 4px;
         }
 
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
         .message-time {
             font-size: 0.7rem;
             color: #999;
-            text-align: right;
-            margin-top: 4px;
+        }
+
+        .message-status {
+            display: flex;
+            align-items: center;
+            margin-left: 8px;
+        }
+
+        .tick {
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        .tick.sent {
+            color: #999;
+        }
+
+        .tick.delivered {
+            color: #999;
+        }
+
+        .tick.read {
+            color: var(--whatsapp-light);
         }
 
         .file-message {
@@ -483,7 +538,7 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .auth-container {
+            .auth-container, .name-setup-container {
                 margin: 1rem;
                 padding: 2rem;
             }
@@ -526,15 +581,30 @@
         </div>
     </div>
 
+    <!-- Name Setup Screen -->
+    <div id="name-setup-screen" class="screen">
+        <div class="name-setup-container">
+            <h2>Welcome! 👋</h2>
+            <p>Please set your display name for the chat</p>
+            <div class="auth-form">
+                <input type="text" id="display-name" placeholder="Your display name" maxlength="20">
+                <div class="auth-buttons">
+                    <button id="save-name-btn" onclick="saveDisplayName()">Save & Continue</button>
+                </div>
+            </div>
+            <div id="name-error" class="error-message"></div>
+        </div>
+    </div>
+
     <!-- Main Chat Screen -->
     <div id="chat-screen" class="screen">
         <div class="chat-header">
             <div class="header-info">
                 <h3>💬 Group Chat</h3>
-                <span id="online-status">● Online</span>
+                <span id="online-count">● 1 online</span>
             </div>
             <div class="header-actions">
-                <span id="user-email"></span>
+                <span id="user-name"></span>
                 <button onclick="signOut()">Logout</button>
             </div>
         </div>
@@ -625,9 +695,9 @@
         // DOM Elements and State
         let currentUser = null;
         let selectedFile = null;
+        let userDisplayName = '';
 
         // Simple XOR encryption for demonstration
-        // In production, use a proper encryption library like Web Crypto API
         function simpleEncrypt(text, key = "secret-key") {
             let result = '';
             for (let i = 0; i < text.length; i++) {
@@ -650,19 +720,6 @@
             }
         }
 
-        // File encryption simulation
-        async function encryptFile(file) {
-            // In a real app, you would use Web Crypto API here
-            // For demo, we'll just add a marker that it's "encrypted"
-            return {
-                encrypted: true,
-                originalFile: file,
-                name: file.name,
-                type: file.type,
-                size: file.size
-            };
-        }
-
         // Authentication functions
         async function signUp() {
             const email = document.getElementById('email').value;
@@ -678,10 +735,11 @@
                 await db.collection('users').doc(currentUser.uid).set({
                     email: email,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    isOnline: true
                 });
                 
-                showChatScreen();
+                showNameSetupScreen();
             } catch (error) {
                 errorElement.textContent = getAuthErrorMessage(error);
             }
@@ -696,17 +754,57 @@
                 errorElement.textContent = '';
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
-                showChatScreen();
+                
+                // Check if user has a display name
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().displayName) {
+                    userDisplayName = userDoc.data().displayName;
+                    showChatScreen();
+                } else {
+                    showNameSetupScreen();
+                }
             } catch (error) {
                 errorElement.textContent = getAuthErrorMessage(error);
+            }
+        }
+
+        async function saveDisplayName() {
+            const displayName = document.getElementById('display-name').value.trim();
+            const errorElement = document.getElementById('name-error');
+            
+            if (!displayName) {
+                errorElement.textContent = 'Please enter a display name';
+                return;
+            }
+            
+            if (displayName.length > 20) {
+                errorElement.textContent = 'Display name must be 20 characters or less';
+                return;
+            }
+            
+            try {
+                errorElement.textContent = '';
+                userDisplayName = displayName;
+                
+                // Save display name to user document
+                await db.collection('users').doc(currentUser.uid).update({
+                    displayName: displayName,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    isOnline: true
+                });
+                
+                showChatScreen();
+            } catch (error) {
+                errorElement.textContent = 'Error saving display name: ' + error.message;
             }
         }
 
         async function signOut() {
             try {
                 if (currentUser) {
-                    // Update last seen timestamp
+                    // Update user as offline
                     await db.collection('users').doc(currentUser.uid).update({
+                        isOnline: false,
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
@@ -737,16 +835,25 @@
         // Screen management
         function showAuthScreen() {
             document.getElementById('auth-screen').classList.add('active');
+            document.getElementById('name-setup-screen').classList.remove('active');
             document.getElementById('chat-screen').classList.remove('active');
             document.getElementById('messages-container').innerHTML = '<div class="welcome-message"><p>Welcome to your private chat! Start messaging below.</p></div>';
         }
 
+        function showNameSetupScreen() {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('name-setup-screen').classList.add('active');
+            document.getElementById('chat-screen').classList.remove('active');
+        }
+
         function showChatScreen() {
             document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('name-setup-screen').classList.remove('active');
             document.getElementById('chat-screen').classList.add('active');
-            document.getElementById('user-email').textContent = currentUser.email;
+            document.getElementById('user-name').textContent = userDisplayName;
             loadMessages();
             updateOnlineStatus();
+            trackOnlineUsers();
         }
 
         // Message functions
@@ -761,14 +868,26 @@
                 const encryptedMessage = simpleEncrypt(messageText);
                 
                 // Add message to Firestore
-                await db.collection('messages').add({
+                const messageRef = await db.collection('messages').add({
                     text: encryptedMessage,
-                    sender: currentUser.email,
+                    sender: userDisplayName,
                     senderId: currentUser.uid,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     type: 'text',
-                    encrypted: true
+                    encrypted: true,
+                    status: 'sent' // Initial status
                 });
+                
+                // Update message status to delivered after a short delay
+                setTimeout(async () => {
+                    try {
+                        await messageRef.update({
+                            status: 'delivered'
+                        });
+                    } catch (error) {
+                        console.error('Error updating message status:', error);
+                    }
+                }, 1000);
                 
                 messageInput.value = '';
                 updateCharCount();
@@ -794,7 +913,7 @@
                     
                     snapshot.forEach(doc => {
                         const message = doc.data();
-                        displayMessage(message);
+                        displayMessage(message, doc.id);
                     });
                     
                     // Scroll to bottom
@@ -804,7 +923,7 @@
                 });
         }
 
-        function displayMessage(message) {
+        function displayMessage(message, messageId) {
             const messagesContainer = document.getElementById('messages-container');
             
             // Remove welcome message if it exists
@@ -888,7 +1007,10 @@
                 messageDiv.appendChild(fileDiv);
             }
             
-            // Timestamp
+            // Message footer with timestamp and status
+            const footerDiv = document.createElement('div');
+            footerDiv.className = 'message-footer';
+            
             const timeDiv = document.createElement('div');
             timeDiv.className = 'message-time';
             
@@ -899,7 +1021,23 @@
                 timeDiv.textContent = 'Just now';
             }
             
-            messageDiv.appendChild(timeDiv);
+            footerDiv.appendChild(timeDiv);
+            
+            // Add status ticks for sent messages
+            if (message.senderId === currentUser?.uid) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'message-status';
+                
+                // Single tick for sent, double ticks for delivered
+                const tickDiv = document.createElement('div');
+                tickDiv.className = `tick ${message.status || 'sent'}`;
+                tickDiv.innerHTML = message.status === 'delivered' ? '✓✓' : '✓';
+                
+                statusDiv.appendChild(tickDiv);
+                footerDiv.appendChild(statusDiv);
+            }
+            
+            messageDiv.appendChild(footerDiv);
             messagesContainer.appendChild(messageDiv);
         }
 
@@ -955,6 +1093,16 @@
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
+        }
+
+        function trackOnlineUsers() {
+            // Track online users count
+            db.collection('users')
+                .where('isOnline', '==', true)
+                .onSnapshot(snapshot => {
+                    const onlineCount = snapshot.size;
+                    document.getElementById('online-count').textContent = `● ${onlineCount} online`;
+                });
         }
 
         // File handling functions
@@ -1017,17 +1165,29 @@
                 const downloadURL = await snapshot.ref.getDownloadURL();
                 
                 // Add file message to Firestore
-                await db.collection('messages').add({
+                const messageRef = await db.collection('messages').add({
                     type: 'file',
                     fileName: selectedFile.name,
                     fileType: selectedFile.type,
                     fileSize: selectedFile.size,
                     fileUrl: downloadURL,
-                    sender: currentUser.email,
+                    sender: userDisplayName,
                     senderId: currentUser.uid,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    encrypted: encryptFile
+                    encrypted: encryptFile,
+                    status: 'sent'
                 });
+                
+                // Update message status to delivered after a short delay
+                setTimeout(async () => {
+                    try {
+                        await messageRef.update({
+                            status: 'delivered'
+                        });
+                    } catch (error) {
+                        console.error('Error updating message status:', error);
+                    }
+                }, 1000);
                 
                 // Close modal and reset
                 closeFileModal();
@@ -1059,11 +1219,31 @@
             // File input change
             document.getElementById('file-input').addEventListener('change', handleFileSelect);
             
+            // Enter key in name setup
+            document.getElementById('display-name').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveDisplayName();
+                }
+            });
+            
             // Auth state listener
             auth.onAuthStateChanged(user => {
                 currentUser = user;
                 if (user) {
-                    showChatScreen();
+                    // Check if user has display name
+                    db.collection('users').doc(user.uid).get()
+                        .then(doc => {
+                            if (doc.exists && doc.data().displayName) {
+                                userDisplayName = doc.data().displayName;
+                                showChatScreen();
+                            } else {
+                                showNameSetupScreen();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error getting user data:', error);
+                            showNameSetupScreen();
+                        });
                 } else {
                     showAuthScreen();
                 }
