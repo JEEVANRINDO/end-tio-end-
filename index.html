@@ -377,7 +377,12 @@
             border-color: var(--whatsapp-light);
         }
 
-        #send-btn, #file-btn {
+        .input-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-buttons button {
             background: var(--whatsapp-green);
             color: white;
             border: none;
@@ -395,11 +400,15 @@
             background: var(--whatsapp-light);
         }
 
-        #send-btn:hover, #file-btn:hover {
+        #emoji-btn, #gif-btn {
+            background: var(--whatsapp-dark);
+        }
+
+        .input-buttons button:hover {
             transform: scale(1.05);
         }
 
-        #send-btn:active, #file-btn:active {
+        .input-buttons button:active {
             transform: scale(0.95);
         }
 
@@ -518,6 +527,144 @@
             color: #333;
         }
 
+        /* Emoji Picker */
+        .emoji-picker {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 12px;
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+
+        .emoji-picker.active {
+            display: block;
+        }
+
+        .emoji-category {
+            margin-bottom: 12px;
+        }
+
+        .emoji-category h4 {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+        }
+
+        .emoji {
+            font-size: 1.2rem;
+            padding: 4px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .emoji:hover {
+            background: #f0f0f0;
+        }
+
+        /* GIF Picker */
+        .gif-picker {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 12px;
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+
+        .gif-picker.active {
+            display: block;
+        }
+
+        .gif-search {
+            margin-bottom: 12px;
+        }
+
+        .gif-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .gif-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .gif-item {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .gif-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Message Actions */
+        .message-actions {
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 10;
+        }
+
+        .message:hover .message-actions {
+            display: block;
+        }
+
+        .message-action {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .message-action:hover {
+            background: #f0f0f0;
+        }
+
+        .message-action.delete {
+            color: var(--error-color);
+        }
+
         /* Scrollbar Styling */
         .messages-container::-webkit-scrollbar {
             width: 6px;
@@ -557,6 +704,11 @@
             
             .image-message {
                 max-width: 200px;
+            }
+            
+            .emoji-picker, .gif-picker {
+                width: 250px;
+                right: 10px;
             }
         }
     </style>
@@ -619,16 +771,28 @@
             <div class="message-input-container">
                 <div class="message-input">
                     <input type="text" id="message-input" placeholder="Type a message..." maxlength="1000">
-                    <button id="file-btn" onclick="openFileModal()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                        </svg>
-                    </button>
-                    <button id="send-btn" onclick="sendMessage()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                        </svg>
-                    </button>
+                    <div class="input-buttons">
+                        <button id="emoji-btn" onclick="toggleEmojiPicker()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </button>
+                        <button id="gif-btn" onclick="toggleGifPicker()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z"/>
+                            </svg>
+                        </button>
+                        <button id="file-btn" onclick="openFileModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                            </svg>
+                        </button>
+                        <button id="send-btn" onclick="sendMessage()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="input-actions">
                     <span class="char-count"><span id="char-count">0</span>/1000</span>
@@ -666,6 +830,38 @@
                 <button id="select-file-btn" onclick="document.getElementById('file-input').click()">Select File</button>
                 <button id="send-file-btn" onclick="sendFile()" disabled>Send File</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Emoji Picker -->
+    <div id="emoji-picker" class="emoji-picker">
+        <div class="emoji-category">
+            <h4>Smileys & People</h4>
+            <div class="emoji-grid" id="smiley-emojis">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        <div class="emoji-category">
+            <h4>Objects</h4>
+            <div class="emoji-grid" id="object-emojis">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        <div class="emoji-category">
+            <h4>Symbols</h4>
+            <div class="emoji-grid" id="symbol-emojis">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GIF Picker -->
+    <div id="gif-picker" class="gif-picker">
+        <div class="gif-search">
+            <input type="text" id="gif-search" placeholder="Search GIFs...">
+        </div>
+        <div class="gif-grid" id="gif-grid">
+            <!-- Will be populated by JavaScript -->
         </div>
     </div>
 
@@ -720,7 +916,7 @@
             }
         }
 
-        // Authentication functions - UPDATED WITH setDoc + merge
+        // Authentication functions
         async function signUp() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -731,14 +927,13 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
-                // STEP 1 & 2: Use setDoc with merge: true for Initial User Profiles
                 const userRef = db.collection('users').doc(currentUser.uid);
                 await userRef.set({
                     email: email,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
-                }, { merge: true }); // This creates or updates the document
+                }, { merge: true });
                 
                 showNameSetupScreen();
             } catch (error) {
@@ -756,12 +951,10 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
-                // STEP 2: Check if user document exists and create if needed
                 const userRef = db.collection('users').doc(currentUser.uid);
                 const userDoc = await userRef.get();
                 
                 if (!userDoc.exists) {
-                    // Create initial user profile if it doesn't exist
                     await userRef.set({
                         email: email,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -769,14 +962,12 @@
                         isOnline: true
                     }, { merge: true });
                 } else {
-                    // Update online status for existing user
                     await userRef.set({
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                         isOnline: true
                     }, { merge: true });
                 }
                 
-                // Check if user has a display name
                 const updatedUserDoc = await userRef.get();
                 if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
                     userDisplayName = updatedUserDoc.data().displayName;
@@ -807,7 +998,6 @@
                 errorElement.textContent = '';
                 userDisplayName = displayName;
                 
-                // STEP 1: Use setDoc with merge: true to save display name
                 const userRef = db.collection('users').doc(currentUser.uid);
                 await userRef.set({
                     displayName: displayName,
@@ -824,7 +1014,6 @@
         async function signOut() {
             try {
                 if (currentUser) {
-                    // Update user as offline using setDoc with merge
                     const userRef = db.collection('users').doc(currentUser.uid);
                     await userRef.set({
                         isOnline: false,
@@ -877,6 +1066,8 @@
             loadMessages();
             updateOnlineStatus();
             trackOnlineUsers();
+            populateEmojis();
+            loadTrendingGifs();
         }
 
         // Message functions
@@ -887,10 +1078,8 @@
             if (!messageText || !currentUser) return;
             
             try {
-                // Encrypt the message
                 const encryptedMessage = simpleEncrypt(messageText);
                 
-                // Add message to Firestore
                 const messageRef = await db.collection('messages').add({
                     text: encryptedMessage,
                     sender: userDisplayName,
@@ -898,10 +1087,9 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     type: 'text',
                     encrypted: true,
-                    status: 'sent' // Initial status
+                    status: 'sent'
                 });
                 
-                // Update message status to delivered after a short delay
                 setTimeout(async () => {
                     try {
                         await messageRef.update({
@@ -921,8 +1109,18 @@
             }
         }
 
+        async function deleteMessage(messageId) {
+            if (!confirm('Are you sure you want to delete this message?')) return;
+            
+            try {
+                await db.collection('messages').doc(messageId).delete();
+            } catch (error) {
+                console.error('Error deleting message:', error);
+                alert('Error deleting message. Please try again.');
+            }
+        }
+
         function loadMessages() {
-            // Real-time listener for messages
             db.collection('messages')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snapshot => {
@@ -939,7 +1137,6 @@
                         displayMessage(message, doc.id);
                     });
                     
-                    // Scroll to bottom
                     scrollToBottom();
                 }, error => {
                     console.error('Error loading messages:', error);
@@ -949,7 +1146,6 @@
         function displayMessage(message, messageId) {
             const messagesContainer = document.getElementById('messages-container');
             
-            // Remove welcome message if it exists
             const welcomeMessage = messagesContainer.querySelector('.welcome-message');
             if (welcomeMessage) {
                 welcomeMessage.remove();
@@ -958,7 +1154,6 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${message.senderId === currentUser?.uid ? 'sent' : 'received'}`;
             
-            // Add sender name for received messages
             if (message.senderId !== currentUser?.uid) {
                 const senderDiv = document.createElement('div');
                 senderDiv.className = 'message-sender';
@@ -966,9 +1161,7 @@
                 messageDiv.appendChild(senderDiv);
             }
             
-            // Message content based on type
             if (message.type === 'text') {
-                // Decrypt the message if it's encrypted
                 const messageText = message.encrypted ? simpleDecrypt(message.text) : message.text;
                 
                 const textDiv = document.createElement('div');
@@ -986,7 +1179,6 @@
                 const fileIcon = document.createElement('div');
                 fileIcon.className = 'file-icon';
                 
-                // Set appropriate icon based on file type
                 if (message.fileType && message.fileType.startsWith('image/')) {
                     fileIcon.innerHTML = '🖼️';
                     
@@ -1029,8 +1221,18 @@
                 fileDiv.appendChild(fileInfoDiv);
                 messageDiv.appendChild(fileDiv);
             }
+            else if (message.type === 'gif') {
+                const gifDiv = document.createElement('div');
+                gifDiv.className = 'image-message';
+                
+                const img = document.createElement('img');
+                img.src = message.gifUrl;
+                img.alt = 'GIF';
+                gifDiv.appendChild(img);
+                
+                messageDiv.appendChild(gifDiv);
+            }
             
-            // Message footer with timestamp and status
             const footerDiv = document.createElement('div');
             footerDiv.className = 'message-footer';
             
@@ -1046,12 +1248,10 @@
             
             footerDiv.appendChild(timeDiv);
             
-            // Add status ticks for sent messages
             if (message.senderId === currentUser?.uid) {
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'message-status';
                 
-                // Single tick for sent, double ticks for delivered
                 const tickDiv = document.createElement('div');
                 tickDiv.className = `tick ${message.status || 'sent'}`;
                 tickDiv.innerHTML = message.status === 'delivered' ? '✓✓' : '✓';
@@ -1061,6 +1261,21 @@
             }
             
             messageDiv.appendChild(footerDiv);
+            
+            // Add delete button for user's own messages
+            if (message.senderId === currentUser?.uid) {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'message-actions';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'message-action delete';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = () => deleteMessage(messageId);
+                
+                actionsDiv.appendChild(deleteBtn);
+                messageDiv.appendChild(actionsDiv);
+            }
+            
             messagesContainer.appendChild(messageDiv);
         }
 
@@ -1068,12 +1283,12 @@
             const now = new Date();
             const diff = now.getTime() - date.getTime();
             
-            if (diff < 60000) { // Less than 1 minute
+            if (diff < 60000) {
                 return 'Just now';
-            } else if (diff < 3600000) { // Less than 1 hour
+            } else if (diff < 3600000) {
                 const minutes = Math.floor(diff / 60000);
                 return `${minutes}m ago`;
-            } else if (diff < 86400000) { // Less than 1 day
+            } else if (diff < 86400000) {
                 return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             } else {
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -1101,16 +1316,13 @@
 
         function updateOnlineStatus() {
             if (currentUser) {
-                // STEP 1: Use setDoc with merge for online status
                 const userRef = db.collection('users').doc(currentUser.uid);
                 
-                // Set user as online
                 userRef.set({
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
                 }, { merge: true });
                 
-                // Set up disconnect handler
                 userRef.onDisconnect().set({
                     isOnline: false,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
@@ -1119,7 +1331,6 @@
         }
 
         function trackOnlineUsers() {
-            // Track online users count
             db.collection('users')
                 .where('isOnline', '==', true)
                 .onSnapshot(snapshot => {
@@ -1148,14 +1359,12 @@
             
             selectedFile = file;
             
-            // Update file info
             document.getElementById('file-info').innerHTML = `
                 <p><strong>Name:</strong> ${file.name}</p>
                 <p><strong>Type:</strong> ${file.type || 'Unknown'}</p>
                 <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
             `;
             
-            // Show preview for images
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -1166,7 +1375,6 @@
                 document.getElementById('file-preview').innerHTML = '<p>No preview available</p>';
             }
             
-            // Enable send button
             document.getElementById('send-file-btn').disabled = false;
         }
 
@@ -1174,20 +1382,16 @@
             if (!selectedFile || !currentUser) return;
             
             try {
-                // Show loading state
                 document.getElementById('send-file-btn').disabled = true;
                 document.getElementById('send-file-btn').textContent = 'Uploading...';
                 
                 const encryptFile = document.getElementById('encrypt-file').checked;
                 
-                // Create a reference to the file in Firebase Storage
                 const fileRef = storage.ref().child(`files/${currentUser.uid}/${Date.now()}_${selectedFile.name}`);
                 
-                // Upload the file
                 const snapshot = await fileRef.put(selectedFile);
                 const downloadURL = await snapshot.ref.getDownloadURL();
                 
-                // Add file message to Firestore
                 const messageRef = await db.collection('messages').add({
                     type: 'file',
                     fileName: selectedFile.name,
@@ -1201,7 +1405,6 @@
                     status: 'sent'
                 });
                 
-                // Update message status to delivered after a short delay
                 setTimeout(async () => {
                     try {
                         await messageRef.update({
@@ -1212,7 +1415,6 @@
                     }
                 }, 1000);
                 
-                // Close modal and reset
                 closeFileModal();
                 selectedFile = null;
                 
@@ -1220,9 +1422,174 @@
                 console.error('Error sending file:', error);
                 alert('Error sending file. Please try again.');
                 
-                // Reset button state
                 document.getElementById('send-file-btn').disabled = false;
                 document.getElementById('send-file-btn').textContent = 'Send File';
+            }
+        }
+
+        // Emoji functions
+        function populateEmojis() {
+            const smileyEmojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+            
+            const objectEmojis = ['💍', '💎', '💐', '🌸', '💮', '🏵️', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🥝', '🍅', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧃', '🧉', '🧊', '🥢', '🍽️', '🍴', '🥄', '🔪', '🏺'];
+            
+            const symbolEmojis = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🈳', '🈂️', '🛂', '🛃', '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '👁️‍🗨️', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'];
+            
+            const smileyContainer = document.getElementById('smiley-emojis');
+            const objectContainer = document.getElementById('object-emojis');
+            const symbolContainer = document.getElementById('symbol-emojis');
+            
+            smileyEmojis.forEach(emoji => {
+                const emojiElement = document.createElement('div');
+                emojiElement.className = 'emoji';
+                emojiElement.textContent = emoji;
+                emojiElement.onclick = () => insertEmoji(emoji);
+                smileyContainer.appendChild(emojiElement);
+            });
+            
+            objectEmojis.forEach(emoji => {
+                const emojiElement = document.createElement('div');
+                emojiElement.className = 'emoji';
+                emojiElement.textContent = emoji;
+                emojiElement.onclick = () => insertEmoji(emoji);
+                objectContainer.appendChild(emojiElement);
+            });
+            
+            symbolEmojis.forEach(emoji => {
+                const emojiElement = document.createElement('div');
+                emojiElement.className = 'emoji';
+                emojiElement.textContent = emoji;
+                emojiElement.onclick = () => insertEmoji(emoji);
+                symbolContainer.appendChild(emojiElement);
+            });
+        }
+
+        function toggleEmojiPicker() {
+            const emojiPicker = document.getElementById('emoji-picker');
+            const gifPicker = document.getElementById('gif-picker');
+            
+            emojiPicker.classList.toggle('active');
+            gifPicker.classList.remove('active');
+        }
+
+        function insertEmoji(emoji) {
+            const messageInput = document.getElementById('message-input');
+            const cursorPosition = messageInput.selectionStart;
+            const textBefore = messageInput.value.substring(0, cursorPosition);
+            const textAfter = messageInput.value.substring(cursorPosition);
+            
+            messageInput.value = textBefore + emoji + textAfter;
+            messageInput.focus();
+            messageInput.selectionStart = cursorPosition + emoji.length;
+            messageInput.selectionEnd = cursorPosition + emoji.length;
+            
+            updateCharCount();
+            
+            // Close emoji picker after selection
+            document.getElementById('emoji-picker').classList.remove('active');
+        }
+
+        // GIF functions
+        async function loadTrendingGifs() {
+            // Using Giphy API for demo - in production, you should use your own API key
+            const apiKey = 'dc6zaTOxFJmzC'; // This is Giphy's public beta key
+            const url = `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=20&rating=g`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const gifGrid = document.getElementById('gif-grid');
+                gifGrid.innerHTML = '';
+                
+                data.data.forEach(gif => {
+                    const gifItem = document.createElement('div');
+                    gifItem.className = 'gif-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = gif.images.fixed_height_small.url;
+                    img.alt = gif.title;
+                    
+                    gifItem.appendChild(img);
+                    gifItem.onclick = () => sendGif(gif.images.original.url);
+                    
+                    gifGrid.appendChild(gifItem);
+                });
+            } catch (error) {
+                console.error('Error loading GIFs:', error);
+            }
+        }
+
+        async function searchGifs(query) {
+            if (!query) {
+                loadTrendingGifs();
+                return;
+            }
+            
+            const apiKey = 'dc6zaTOxFJmzC';
+            const url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=20&rating=g`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const gifGrid = document.getElementById('gif-grid');
+                gifGrid.innerHTML = '';
+                
+                data.data.forEach(gif => {
+                    const gifItem = document.createElement('div');
+                    gifItem.className = 'gif-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = gif.images.fixed_height_small.url;
+                    img.alt = gif.title;
+                    
+                    gifItem.appendChild(img);
+                    gifItem.onclick = () => sendGif(gif.images.original.url);
+                    
+                    gifGrid.appendChild(gifItem);
+                });
+            } catch (error) {
+                console.error('Error searching GIFs:', error);
+            }
+        }
+
+        function toggleGifPicker() {
+            const gifPicker = document.getElementById('gif-picker');
+            const emojiPicker = document.getElementById('emoji-picker');
+            
+            gifPicker.classList.toggle('active');
+            emojiPicker.classList.remove('active');
+        }
+
+        async function sendGif(gifUrl) {
+            if (!currentUser) return;
+            
+            try {
+                const messageRef = await db.collection('messages').add({
+                    type: 'gif',
+                    gifUrl: gifUrl,
+                    sender: userDisplayName,
+                    senderId: currentUser.uid,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent'
+                });
+                
+                setTimeout(async () => {
+                    try {
+                        await messageRef.update({
+                            status: 'delivered'
+                        });
+                    } catch (error) {
+                        console.error('Error updating message status:', error);
+                    }
+                }, 1000);
+                
+                document.getElementById('gif-picker').classList.remove('active');
+                
+            } catch (error) {
+                console.error('Error sending GIF:', error);
+                alert('Error sending GIF. Please try again.');
             }
         }
 
@@ -1249,16 +1616,35 @@
                 }
             });
             
-            // Auth state listener - UPDATED to handle user profile creation
+            // GIF search
+            document.getElementById('gif-search').addEventListener('input', function(e) {
+                searchGifs(e.target.value);
+            });
+            
+            // Close pickers when clicking outside
+            document.addEventListener('click', function(e) {
+                const emojiPicker = document.getElementById('emoji-picker');
+                const gifPicker = document.getElementById('gif-picker');
+                const emojiBtn = document.getElementById('emoji-btn');
+                const gifBtn = document.getElementById('gif-btn');
+                
+                if (!emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+                    emojiPicker.classList.remove('active');
+                }
+                
+                if (!gifPicker.contains(e.target) && !gifBtn.contains(e.target)) {
+                    gifPicker.classList.remove('active');
+                }
+            });
+            
+            // Auth state listener
             auth.onAuthStateChanged(async (user) => {
                 currentUser = user;
                 if (user) {
-                    // STEP 2: Ensure user profile exists on auth state change
                     const userRef = db.collection('users').doc(user.uid);
                     const userDoc = await userRef.get();
                     
                     if (!userDoc.exists) {
-                        // Create initial user profile if it doesn't exist
                         await userRef.set({
                             email: user.email,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1267,7 +1653,6 @@
                         }, { merge: true });
                     }
                     
-                    // Check if user has display name
                     const updatedUserDoc = await userRef.get();
                     if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
                         userDisplayName = updatedUserDoc.data().displayName;
