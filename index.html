@@ -720,7 +720,7 @@
             }
         }
 
-        // Authentication functions
+        // Authentication functions - UPDATED WITH setDoc + merge
         async function signUp() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -731,13 +731,14 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
-                // Create user document in Firestore
-                await db.collection('users').doc(currentUser.uid).set({
+                // STEP 1 & 2: Use setDoc with merge: true for Initial User Profiles
+                const userRef = db.collection('users').doc(currentUser.uid);
+                await userRef.set({
                     email: email,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
-                });
+                }, { merge: true }); // This creates or updates the document
                 
                 showNameSetupScreen();
             } catch (error) {
@@ -755,10 +756,30 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
                 
+                // STEP 2: Check if user document exists and create if needed
+                const userRef = db.collection('users').doc(currentUser.uid);
+                const userDoc = await userRef.get();
+                
+                if (!userDoc.exists) {
+                    // Create initial user profile if it doesn't exist
+                    await userRef.set({
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        isOnline: true
+                    }, { merge: true });
+                } else {
+                    // Update online status for existing user
+                    await userRef.set({
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        isOnline: true
+                    }, { merge: true });
+                }
+                
                 // Check if user has a display name
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().displayName) {
-                    userDisplayName = userDoc.data().displayName;
+                const updatedUserDoc = await userRef.get();
+                if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
+                    userDisplayName = updatedUserDoc.data().displayName;
                     showChatScreen();
                 } else {
                     showNameSetupScreen();
@@ -786,12 +807,13 @@
                 errorElement.textContent = '';
                 userDisplayName = displayName;
                 
-                // Save display name to user document
-                await db.collection('users').doc(currentUser.uid).update({
+                // STEP 1: Use setDoc with merge: true to save display name
+                const userRef = db.collection('users').doc(currentUser.uid);
+                await userRef.set({
                     displayName: displayName,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
-                });
+                }, { merge: true });
                 
                 showChatScreen();
             } catch (error) {
@@ -802,11 +824,12 @@
         async function signOut() {
             try {
                 if (currentUser) {
-                    // Update user as offline
-                    await db.collection('users').doc(currentUser.uid).update({
+                    // Update user as offline using setDoc with merge
+                    const userRef = db.collection('users').doc(currentUser.uid);
+                    await userRef.set({
                         isOnline: false,
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    }, { merge: true });
                 }
                 await auth.signOut();
                 showAuthScreen();
@@ -1078,20 +1101,20 @@
 
         function updateOnlineStatus() {
             if (currentUser) {
-                // Update user's online status
+                // STEP 1: Use setDoc with merge for online status
                 const userRef = db.collection('users').doc(currentUser.uid);
                 
                 // Set user as online
-                userRef.update({
+                userRef.set({
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                     isOnline: true
-                });
+                }, { merge: true });
                 
                 // Set up disconnect handler
-                userRef.onDisconnect().update({
+                userRef.onDisconnect().set({
                     isOnline: false,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                }, { merge: true });
             }
         }
 
@@ -1226,24 +1249,32 @@
                 }
             });
             
-            // Auth state listener
-            auth.onAuthStateChanged(user => {
+            // Auth state listener - UPDATED to handle user profile creation
+            auth.onAuthStateChanged(async (user) => {
                 currentUser = user;
                 if (user) {
+                    // STEP 2: Ensure user profile exists on auth state change
+                    const userRef = db.collection('users').doc(user.uid);
+                    const userDoc = await userRef.get();
+                    
+                    if (!userDoc.exists) {
+                        // Create initial user profile if it doesn't exist
+                        await userRef.set({
+                            email: user.email,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                            isOnline: true
+                        }, { merge: true });
+                    }
+                    
                     // Check if user has display name
-                    db.collection('users').doc(user.uid).get()
-                        .then(doc => {
-                            if (doc.exists && doc.data().displayName) {
-                                userDisplayName = doc.data().displayName;
-                                showChatScreen();
-                            } else {
-                                showNameSetupScreen();
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error getting user data:', error);
-                            showNameSetupScreen();
-                        });
+                    const updatedUserDoc = await userRef.get();
+                    if (updatedUserDoc.exists && updatedUserDoc.data().displayName) {
+                        userDisplayName = updatedUserDoc.data().displayName;
+                        showChatScreen();
+                    } else {
+                        showNameSetupScreen();
+                    }
                 } else {
                     showAuthScreen();
                 }
