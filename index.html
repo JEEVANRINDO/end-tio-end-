@@ -9,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         :root{--whatsapp-green:#25D366;--whatsapp-dark:#075E54;--whatsapp-light:#128C7E;--chat-bg:#e5ddd5;--message-sent:#dcf8c6;--message-received:#ffffff;--border-color:#e0e0e0;--error-color:#e74c3c;--warning-color:#f39c12;}
@@ -217,6 +216,52 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
+        let libsignal = null;
+        let signalLibraryLoaded = false;
+
+        function loadSignalLibrary() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.libsignal !== 'undefined') {
+                    libsignal = window.libsignal;
+                    signalLibraryLoaded = true;
+                    resolve();
+                    return;
+                }
+
+                const primaryScript = document.createElement('script');
+                primaryScript.src = 'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js';
+                primaryScript.onload = () => {
+                    if (typeof window.libsignal !== 'undefined') {
+                        libsignal = window.libsignal;
+                        signalLibraryLoaded = true;
+                        resolve();
+                    } else {
+                        reject(new Error('Primary CDN loaded but libsignal object not found'));
+                    }
+                };
+                primaryScript.onerror = () => {
+                    const backupScript = document.createElement('script');
+                    backupScript.src = 'https://unpkg.com/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js';
+                    backupScript.onload = () => {
+                        if (typeof window.libsignal !== 'undefined') {
+                            libsignal = window.libsignal;
+                            signalLibraryLoaded = true;
+                            resolve();
+                        } else {
+                            reject(new Error('Backup CDN loaded but libsignal object not found'));
+                        }
+                    };
+                    backupScript.onerror = () => {
+                        reject(new Error('All CDN attempts failed'));
+                    };
+                    document.head.appendChild(backupScript);
+                };
+                document.head.appendChild(primaryScript);
+            });
+        }
+
+        const libraryLoadPromise = loadSignalLibrary();
+
         const SECURITY_CONFIG = {
             PBKDF2_ITERATIONS: 310000,
             KEY_WRAPPING_ALGORITHM: 'AES-GCM',
@@ -290,8 +335,10 @@
 
         async function generateAndRegisterKeys(userIdentifier, store) {
             try {
-                if (typeof libsignal === 'undefined') {
-                    throw new Error('Signal Protocol library not loaded');
+                await libraryLoadPromise;
+                
+                if (!libsignal) {
+                    throw new Error('Signal Protocol library failed to load');
                 }
 
                 const registrationId = libsignal.KeyHelper.generateRegistrationId();
@@ -623,6 +670,14 @@
             if (passphrase !== confirmPassphrase) { alert('Passphrases do not match'); return; }
             try {
                 document.getElementById('setup-encryption-btn').disabled = true;
+                document.getElementById('setup-encryption-btn').textContent = 'Loading library...';
+                
+                await libraryLoadPromise;
+                
+                if (!libsignal) {
+                    throw new Error('Signal Protocol library not loaded');
+                }
+                
                 document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
                 await generateAndRegisterKeys(currentUser.uid, signalStore);
                 const wrappedBundle = await wrapStore(signalStore, passphrase);
@@ -673,6 +728,7 @@
             const messageText = messageInput.value.trim();
             if (!messageText || !currentUser) return;
             try {
+                await libraryLoadPromise;
                 const messageId = generateMessageId();
                 const usersSnapshot = await db.collection('users').get();
                 const encryptedMessages = [];
@@ -720,6 +776,7 @@
                         const userMessage = message.encryptedMessages.find(msg => msg.userId === currentUser.uid);
                         if (userMessage) {
                             try {
+                                await libraryLoadPromise;
                                 const ciphertext = JSON.parse(userMessage.encryptedMessage);
                                 const ciphertextMessage = { type: ciphertext.type, body: base64ToArrayBuffer(ciphertext.body) };
                                 const decryptionResult = await receiveAndDecryptMessage(message.senderId, ciphertextMessage, signalStore);
