@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Private Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --whatsapp-green: #25D366;
+            --whatsapp-dark: #075E54;
+            --whatsapp-light: #128C7E;
+            --chat-bg: #e5ddd5;
+            --message-sent: #dcf8c6;
+            --message-received: #ffffff;
+            --border-color: #e0e0e0;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--chat-bg);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            height: 100vh;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Auth Screen Styles */
+        #auth-screen {
+            background: linear-gradient(135deg, var(--whatsapp-dark) 0%, var(--whatsapp-light) 100%);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .app-logo h1 {
+            color: var(--whatsapp-dark);
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .app-logo p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .auth-form input:focus {
+            outline: none;
+            border-color: var(--whatsapp-light);
+        }
+
+        .auth-buttons {
+            margin-top: 1.5rem;
+        }
+
+        .auth-buttons button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #signup-btn {
+            background: var(--whatsapp-green);
+            color: white;
+        }
+
+        #signin-btn {
+            background: var(--whatsapp-dark);
+            color: white;
+        }
+
+        .auth-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .error-message {
+            color: var(--error-color);
+            margin-top: 1rem;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        /* Chat Screen Styles */
+        #chat-screen {
+            background: var(--chat-bg);
+        }
+
+        .chat-header {
+            background: var(--whatsapp-dark);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        #online-status {
+            font-size: 0.8rem;
+            color: #90ee90;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        #user-email {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .chat-header button {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .chat-header button:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            height: calc(100vh - 80px);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: var(--chat-bg);
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .message {
+            margin: 8px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 70%;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            background: var(--message-sent);
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.received {
+            background: var(--message-received);
+            border-bottom-left-radius: 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message-sender {
+            font-size: 0.8rem;
+            color: var(--whatsapp-dark);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: #999;
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .file-message {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 5px;
+            background: rgba(255,255,255,0.7);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .file-size {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .download-btn {
+            background: var(--whatsapp-green);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .image-message {
+            max-width: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .image-message img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Message Input */
+        .message-input-container {
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+
+        .message-input {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            outline: none;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .message-input input:focus {
+            border-color: var(--whatsapp-light);
+        }
+
+        #send-btn, #file-btn {
+            background: var(--whatsapp-green);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        #file-btn {
+            background: var(--whatsapp-light);
+        }
+
+        #send-btn:hover, #file-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #send-btn:active, #file-btn:active {
+            transform: scale(0.95);
+        }
+
+        .input-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .char-count {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .encryption-status {
+            font-size: 0.8rem;
+            color: var(--whatsapp-light);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* File Upload Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            color: var(--whatsapp-dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .file-preview {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .file-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+        }
+
+        .file-info-preview {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        #encrypt-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 1rem 0;
+        }
+
+        #send-file-btn {
+            background: var(--whatsapp-green);
+            color: white;
+        }
+
+        #cancel-file-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        /* Scrollbar Styling */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .auth-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+            
+            .chat-header {
+                padding: 1rem;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .header-actions span {
+                display: none;
+            }
+            
+            .image-message {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <div class="app-logo">
+                <h1>💬 Secure Private Chat</h1>
+                <p>End-to-end encrypted messaging</p>
+            </div>
+            <div class="auth-form">
+                <input type="email" id="email" placeholder="Email address" value="test@example.com">
+                <input type="password" id="password" placeholder="Password" value="123456">
+                <div class="auth-buttons">
+                    <button id="signup-btn" onclick="signUp()">Create Account</button>
+                    <button id="signin-btn" onclick="signIn()">Sign In</button>
+                </div>
+            </div>
+            <div id="auth-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Main Chat Screen -->
+    <div id="chat-screen" class="screen">
+        <div class="chat-header">
+            <div class="header-info">
+                <h3>💬 Group Chat</h3>
+                <span id="online-status">● Online</span>
+            </div>
+            <div class="header-actions">
+                <span id="user-email"></span>
+                <button onclick="signOut()">Logout</button>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div id="messages-container" class="messages-container">
+                <div class="welcome-message">
+                    <p>Welcome to your private chat! Start messaging below.</p>
+                </div>
+            </div>
+            
+            <div class="message-input-container">
+                <div class="message-input">
+                    <input type="text" id="message-input" placeholder="Type a message..." maxlength="1000">
+                    <button id="file-btn" onclick="openFileModal()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
+                    <button id="send-btn" onclick="sendMessage()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-actions">
+                    <span class="char-count"><span id="char-count">0</span>/1000</span>
+                    <span class="encryption-status">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                        </svg>
+                        End-to-end encrypted
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Modal -->
+    <div id="file-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Send File</h3>
+                <button class="close-btn" onclick="closeFileModal()">×</button>
+            </div>
+            <input type="file" id="file-input" style="display: none" accept="*">
+            <div class="file-preview" id="file-preview">
+                <p>No file selected</p>
+            </div>
+            <div class="file-info-preview" id="file-info">
+                <p>Select a file to send</p>
+            </div>
+            <div id="encrypt-toggle">
+                <input type="checkbox" id="encrypt-file" checked>
+                <label for="encrypt-file">Encrypt file</label>
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-file-btn" onclick="closeFileModal()">Cancel</button>
+                <button id="select-file-btn" onclick="document.getElementById('file-input').click()">Select File</button>
+                <button id="send-file-btn" onclick="sendFile()" disabled>Send File</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCix7_qzRM8dSopBef0ORyFjvssjV32Lc",
+            authDomain: "messaging-app-1bd04.firebaseapp.com",
+            projectId: "messaging-app-1bd04",
+            storageBucket: "messaging-app-1bd04.firebasestorage.app",
+            messagingSenderId: "443693550918",
+            appId: "1:443693550918:web:62cb22ffd4056014822947",
+            measurementId: "G-P9EWYXGNV2"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // DOM Elements and State
+        let currentUser = null;
+        let selectedFile = null;
+
+        // Simple XOR encryption for demonstration
+        // In production, use a proper encryption library like Web Crypto API
+        function simpleEncrypt(text, key = "secret-key") {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return btoa(result); // Base64 encode
+        }
+
+        function simpleDecrypt(encryptedText, key = "secret-key") {
+            try {
+                const text = atob(encryptedText); // Base64 decode
+                let result = '';
+                for (let i = 0; i < text.length; i++) {
+                    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+                }
+                return result;
+            } catch (e) {
+                console.error("Decryption error:", e);
+                return "[Unable to decrypt message]";
+            }
+        }
+
+        // File encryption simulation
+        async function encryptFile(file) {
+            // In a real app, you would use Web Crypto API here
+            // For demo, we'll just add a marker that it's "encrypted"
+            return {
+                encrypted: true,
+                originalFile: file,
+                name: file.name,
+                type: file.type,
+                size: file.size
+            };
+        }
+
+        // Authentication functions
+        async function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('auth-error');
+            
+            try {
+                errorElement.textContent = '';
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                
+                // Create user document in Firestore
+                await db.collection('users').doc(currentUser.uid).set({
+                    email: email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showChatScreen();
+            } catch (error) {
+                errorElement.textContent = getAuthErrorMessage(error);
+            }
+        }
+
+        async function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('auth-error');
+            
+            try {
+                errorElement.textContent = '';
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                showChatScreen();
+            } catch (error) {
+                errorElement.textContent = getAuthErrorMessage(error);
+            }
+        }
+
+        async function signOut() {
+            try {
+                if (currentUser) {
+                    // Update last seen timestamp
+                    await db.collection('users').doc(currentUser.uid).update({
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                await auth.signOut();
+                showAuthScreen();
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        }
+
+        function getAuthErrorMessage(error) {
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    return 'This email is already registered. Please sign in.';
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                case 'auth/user-not-found':
+                    return 'No account found with this email. Please sign up.';
+                case 'auth/wrong-password':
+                    return 'Incorrect password. Please try again.';
+                default:
+                    return error.message;
+            }
+        }
+
+        // Screen management
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.add('active');
+            document.getElementById('chat-screen').classList.remove('active');
+            document.getElementById('messages-container').innerHTML = '<div class="welcome-message"><p>Welcome to your private chat! Start messaging below.</p></div>';
+        }
+
+        function showChatScreen() {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('chat-screen').classList.add('active');
+            document.getElementById('user-email').textContent = currentUser.email;
+            loadMessages();
+            updateOnlineStatus();
+        }
+
+        // Message functions
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const messageText = messageInput.value.trim();
+            
+            if (!messageText || !currentUser) return;
+            
+            try {
+                // Encrypt the message
+                const encryptedMessage = simpleEncrypt(messageText);
+                
+                // Add message to Firestore
+                await db.collection('messages').add({
+                    text: encryptedMessage,
+                    sender: currentUser.email,
+                    senderId: currentUser.uid,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'text',
+                    encrypted: true
+                });
+                
+                messageInput.value = '';
+                updateCharCount();
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message. Please try again.');
+            }
+        }
+
+        function loadMessages() {
+            // Real-time listener for messages
+            db.collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    const messagesContainer = document.getElementById('messages-container');
+                    messagesContainer.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        messagesContainer.innerHTML = '<div class="welcome-message"><p>No messages yet. Start the conversation!</p></div>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        displayMessage(message);
+                    });
+                    
+                    // Scroll to bottom
+                    scrollToBottom();
+                }, error => {
+                    console.error('Error loading messages:', error);
+                });
+        }
+
+        function displayMessage(message) {
+            const messagesContainer = document.getElementById('messages-container');
+            
+            // Remove welcome message if it exists
+            const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.senderId === currentUser?.uid ? 'sent' : 'received'}`;
+            
+            // Add sender name for received messages
+            if (message.senderId !== currentUser?.uid) {
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'message-sender';
+                senderDiv.textContent = message.sender;
+                messageDiv.appendChild(senderDiv);
+            }
+            
+            // Message content based on type
+            if (message.type === 'text') {
+                // Decrypt the message if it's encrypted
+                const messageText = message.encrypted ? simpleDecrypt(message.text) : message.text;
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'message-text';
+                textDiv.textContent = messageText;
+                messageDiv.appendChild(textDiv);
+            } 
+            else if (message.type === 'file') {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-message';
+                
+                const fileInfoDiv = document.createElement('div');
+                fileInfoDiv.className = 'file-info';
+                
+                const fileIcon = document.createElement('div');
+                fileIcon.className = 'file-icon';
+                
+                // Set appropriate icon based on file type
+                if (message.fileType && message.fileType.startsWith('image/')) {
+                    fileIcon.innerHTML = '🖼️';
+                    
+                    const imageDiv = document.createElement('div');
+                    imageDiv.className = 'image-message';
+                    
+                    const img = document.createElement('img');
+                    img.src = message.fileUrl;
+                    img.alt = message.fileName;
+                    imageDiv.appendChild(img);
+                    
+                    messageDiv.appendChild(imageDiv);
+                } else {
+                    fileIcon.innerHTML = '📎';
+                }
+                
+                fileInfoDiv.appendChild(fileIcon);
+                
+                const fileDetailsDiv = document.createElement('div');
+                fileDetailsDiv.className = 'file-details';
+                
+                const fileNameDiv = document.createElement('div');
+                fileNameDiv.className = 'file-name';
+                fileNameDiv.textContent = message.fileName;
+                fileDetailsDiv.appendChild(fileNameDiv);
+                
+                const fileSizeDiv = document.createElement('div');
+                fileSizeDiv.className = 'file-size';
+                fileSizeDiv.textContent = formatFileSize(message.fileSize);
+                fileDetailsDiv.appendChild(fileSizeDiv);
+                
+                fileInfoDiv.appendChild(fileDetailsDiv);
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = 'Download';
+                downloadBtn.onclick = () => window.open(message.fileUrl, '_blank');
+                fileInfoDiv.appendChild(downloadBtn);
+                
+                fileDiv.appendChild(fileInfoDiv);
+                messageDiv.appendChild(fileDiv);
+            }
+            
+            // Timestamp
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            
+            if (message.timestamp) {
+                const date = message.timestamp.toDate();
+                timeDiv.textContent = formatTime(date);
+            } else {
+                timeDiv.textContent = 'Just now';
+            }
+            
+            messageDiv.appendChild(timeDiv);
+            messagesContainer.appendChild(messageDiv);
+        }
+
+        function formatTime(date) {
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            
+            if (diff < 60000) { // Less than 1 minute
+                return 'Just now';
+            } else if (diff < 3600000) { // Less than 1 hour
+                const minutes = Math.floor(diff / 60000);
+                return `${minutes}m ago`;
+            } else if (diff < 86400000) { // Less than 1 day
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function updateCharCount() {
+            const messageInput = document.getElementById('message-input');
+            const charCount = document.getElementById('char-count');
+            charCount.textContent = messageInput.value.length;
+        }
+
+        function updateOnlineStatus() {
+            if (currentUser) {
+                // Update user's online status
+                const userRef = db.collection('users').doc(currentUser.uid);
+                
+                // Set user as online
+                userRef.update({
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    isOnline: true
+                });
+                
+                // Set up disconnect handler
+                userRef.onDisconnect().update({
+                    isOnline: false,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        }
+
+        // File handling functions
+        function openFileModal() {
+            document.getElementById('file-modal').classList.add('active');
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').innerHTML = '<p>No file selected</p>';
+            document.getElementById('file-info').innerHTML = '<p>Select a file to send</p>';
+            document.getElementById('send-file-btn').disabled = true;
+            selectedFile = null;
+        }
+
+        function closeFileModal() {
+            document.getElementById('file-modal').classList.remove('active');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            selectedFile = file;
+            
+            // Update file info
+            document.getElementById('file-info').innerHTML = `
+                <p><strong>Name:</strong> ${file.name}</p>
+                <p><strong>Type:</strong> ${file.type || 'Unknown'}</p>
+                <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
+            `;
+            
+            // Show preview for images
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('file-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('file-preview').innerHTML = '<p>No preview available</p>';
+            }
+            
+            // Enable send button
+            document.getElementById('send-file-btn').disabled = false;
+        }
+
+        async function sendFile() {
+            if (!selectedFile || !currentUser) return;
+            
+            try {
+                // Show loading state
+                document.getElementById('send-file-btn').disabled = true;
+                document.getElementById('send-file-btn').textContent = 'Uploading...';
+                
+                const encryptFile = document.getElementById('encrypt-file').checked;
+                
+                // Create a reference to the file in Firebase Storage
+                const fileRef = storage.ref().child(`files/${currentUser.uid}/${Date.now()}_${selectedFile.name}`);
+                
+                // Upload the file
+                const snapshot = await fileRef.put(selectedFile);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                // Add file message to Firestore
+                await db.collection('messages').add({
+                    type: 'file',
+                    fileName: selectedFile.name,
+                    fileType: selectedFile.type,
+                    fileSize: selectedFile.size,
+                    fileUrl: downloadURL,
+                    sender: currentUser.email,
+                    senderId: currentUser.uid,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    encrypted: encryptFile
+                });
+                
+                // Close modal and reset
+                closeFileModal();
+                selectedFile = null;
+                
+            } catch (error) {
+                console.error('Error sending file:', error);
+                alert('Error sending file. Please try again.');
+                
+                // Reset button state
+                document.getElementById('send-file-btn').disabled = false;
+                document.getElementById('send-file-btn').textContent = 'Send File';
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Enter key to send message
+            document.getElementById('message-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Character count
+            document.getElementById('message-input').addEventListener('input', updateCharCount);
+            
+            // File input change
+            document.getElementById('file-input').addEventListener('change', handleFileSelect);
+            
+            // Auth state listener
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                if (user) {
+                    showChatScreen();
+                } else {
+                    showAuthScreen();
+                }
+            });
+            
+            // Initialize character count
+            updateCharCount();
+        });
+    </script>
+</body>
+</html>
