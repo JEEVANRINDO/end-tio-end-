@@ -221,7 +221,7 @@
         let signalLibraryLoaded = false;
 
         // --- UPDATED LIBRARY LOADING LOGIC ---
-        function loadSignalLibrary() {
+       function loadSignalLibrary() {
             return new Promise((resolve, reject) => {
                 if (typeof window.libsignal !== 'undefined') {
                     libsignal = window.libsignal;
@@ -231,34 +231,39 @@
                     return;
                 }
 
-                // UPDATED CDN LINKS HERE
                 const cdns = [
-                    'https://cdn.jsdelivr.net/npm/libsignal-protocol-javascript@2.0.0/dist/libsignal-protocol.js',
-                    'https://cdn.jsdelivr.net/gh/Signal-Android/libsignal-protocol-javascript/dist/libsignal-protocol.js',
-                    'https://unpkg.com/libsignal-protocol-javascript@2.0.0/dist/libsignal-protocol.js'
+                    // Primary: Validated 1.3.15 build for browsers
+                    'https://cdn.jsdelivr.net/npm/libsignal-protocol@1.3.15/dist/libsignal-protocol.min.js',
+                    
+                    // Backup 1: The Node.js fork which includes a compatible browser bundle
+                    'https://cdn.jsdelivr.net/npm/libsignal-protocol-nodejs@0.1.4/dist/libsignal.js',
+                    
+                    // Backup 2: UNPKG mirror of the specific version
+                    'https://unpkg.com/libsignal-protocol@1.3.15/dist/libsignal-protocol.min.js'
                 ];
 
                 function tryCDN(index) {
                     if (index >= cdns.length) {
-                        reject(new Error('All CDN attempts failed. Please check your internet connection or library availability.'));
+                        reject(new Error('All CDN attempts failed. Please download the library and host it locally.'));
                         return;
                     }
 
+                    console.log(`Attempting to load Signal lib from: ${cdns[index]}`);
                     const script = document.createElement('script');
                     script.src = cdns[index];
                     script.onload = () => {
                         if (typeof window.libsignal !== 'undefined') {
                             libsignal = window.libsignal;
                             signalLibraryLoaded = true;
-                            console.log('Signal library loaded from CDN ' + (index + 1));
+                            console.log('Signal library loaded successfully from ' + cdns[index]);
                             resolve();
                         } else {
-                            // Loaded but object not found, try next
+                            console.warn('Script loaded but window.libsignal is undefined. Trying next...');
                             tryCDN(index + 1);
                         }
                     };
                     script.onerror = () => {
-                        console.warn(`Failed to load CDN ${index + 1}, trying next...`);
+                        console.warn(`Failed to load CDN ${index + 1} (${cdns[index]}), trying next...`);
                         tryCDN(index + 1);
                     };
                     document.head.appendChild(script);
@@ -836,3 +841,4 @@
     </script>
 </body>
 </html>
+
