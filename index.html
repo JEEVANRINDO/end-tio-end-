@@ -84,6 +84,7 @@
             <div class="key-management">
                 <input type="password" id="passphrase" class="passphrase-input" placeholder="Enter a strong passphrase">
                 <input type="password" id="passphrase-confirm" class="passphrase-input" placeholder="Confirm passphrase">
+                <div id="passphrase-error" class="error-message"></div>
                 <div class="security-indicator">
                     <span>🔒</span>
                     <span>Your passphrase is never sent to the server</span>
@@ -188,16 +189,18 @@
                     <span>✅</span>
                     <span><strong>Military Grade Security Active</strong></span>
                 </div>
-               <div class="key-management">
-    <input type="password" id="passphrase" class="passphrase-input" placeholder="Enter a strong passphrase">
-    <input type="password" id="passphrase-confirm" class="passphrase-input" placeholder="Confirm passphrase">
-    <div id="passphrase-error" class="error-message"></div>
-    <div class="security-indicator">
-        <span>🔒</span>
-        <span>Your passphrase is never sent to the server</span>
+                <div class="key-management">
+                    <h4>Encryption Status</h4>
+                    <div id="security-status-list"></div>
+                    <div class="ratchet-status" id="ratchet-status"></div>
+                </div>
+                <button id="verify-security-codes-btn" class="mt-2">Verify Security Codes</button>
+                <button id="manage-devices-btn" class="mt-2">Manage Devices</button>
+                <button id="backup-keys-btn" class="mt-2">Backup Encryption Keys</button>
+                <button id="rotate-keys-btn" class="mt-2">Rotate Keys</button>
+            </div>
+        </div>
     </div>
-    <button id="setup-encryption-btn">Setup Encryption</button>
-</div>
 
     <script>
         // --- CONFIGURATION ---
@@ -698,64 +701,61 @@
             document.getElementById('logout-btn').addEventListener('click', signOut);
             document.getElementById('send-btn').addEventListener('click', sendMessage);
             document.getElementById('message-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
+            
+            // Add these new event listeners to clear passphrase errors when typing
+            document.getElementById('passphrase').addEventListener('input', function() {
+                hideError('passphrase-error');
+            });
+            
+            document.getElementById('passphrase-confirm').addEventListener('input', function() {
+                hideError('passphrase-error');
+            });
+            
             auth.onAuthStateChanged((user) => { if (!user) showScreen('auth-screen'); });
             setupMessageListener();
         });
-        document.addEventListener('DOMContentLoaded', function() {
-    // ... your existing event listeners
-    
-    // Add these new event listeners to clear passphrase errors when typing
-    document.getElementById('passphrase').addEventListener('input', function() {
-        hideError('passphrase-error');
-    });
-    
-    document.getElementById('passphrase-confirm').addEventListener('input', function() {
-        hideError('passphrase-error');
-    });
-});
 
         async function setupEncryption() {
-async function setupEncryption() {
-    const passphrase = document.getElementById('passphrase').value;
-    const confirmPassphrase = document.getElementById('passphrase-confirm').value;
-    
-    // Clear previous errors
-    hideError('passphrase-error');
-    
-    // Validate passphrase
-    if (!passphrase || passphrase.length < 8) { 
-        showError('passphrase-error', 'Passphrase must be at least 8 characters long'); 
-        return; 
-    }
-    if (passphrase !== confirmPassphrase) { 
-        showError('passphrase-error', 'Passphrases do not match'); 
-        return; 
-    }
-    
-    try {
-        document.getElementById('setup-encryption-btn').disabled = true;
-        document.getElementById('setup-encryption-btn').textContent = 'Loading library...';
-        
-        await libraryLoadPromise;
-        
-        if (!libsignal) {
-            throw new Error('Signal Protocol library not loaded');
+            const passphrase = document.getElementById('passphrase').value;
+            const confirmPassphrase = document.getElementById('passphrase-confirm').value;
+            
+            // Clear previous errors
+            hideError('passphrase-error');
+            
+            // Validate passphrase
+            if (!passphrase || passphrase.length < 8) { 
+                showError('passphrase-error', 'Passphrase must be at least 8 characters long'); 
+                return; 
+            }
+            if (passphrase !== confirmPassphrase) { 
+                showError('passphrase-error', 'Passphrases do not match'); 
+                return; 
+            }
+            
+            try {
+                document.getElementById('setup-encryption-btn').disabled = true;
+                document.getElementById('setup-encryption-btn').textContent = 'Loading library...';
+                
+                await libraryLoadPromise;
+                
+                if (!libsignal) {
+                    throw new Error('Signal Protocol library not loaded');
+                }
+                
+                document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
+                await generateAndRegisterKeys(currentUser.uid, signalStore);
+                const wrappedBundle = await wrapStore(signalStore, passphrase);
+                await storeWrappedKeys(wrappedBundle);
+                const securityCode = await initializeKeyVerification();
+                document.getElementById('user-security-code').textContent = securityCode;
+                QRCode.toCanvas(document.getElementById('qr-code-container'), securityCode, function (error) { if (error) console.error('QR code generation error:', error); });
+                showScreen('verification-screen');
+            } catch (error) {
+                showError('passphrase-error', 'Error setting up encryption: ' + error.message);
+                document.getElementById('setup-encryption-btn').disabled = false;
+                document.getElementById('setup-encryption-btn').textContent = 'Setup Encryption';
+            }
         }
-        
-        document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
-        await generateAndRegisterKeys(currentUser.uid, signalStore);
-        const wrappedBundle = await wrapStore(signalStore, passphrase);
-        await storeWrappedKeys(wrappedBundle);
-        const securityCode = await initializeKeyVerification();
-        document.getElementById('user-security-code').textContent = securityCode;
-        QRCode.toCanvas(document.getElementById('qr-code-container'), securityCode, function (error) { if (error) console.error('QR code generation error:', error); });
-        showScreen('verification-screen');
-    } catch (error) {
-        showError('passphrase-error', 'Error setting up encryption: ' + error.message);
-        document.getElementById('setup-encryption-btn').disabled = false;
-        document.getElementById('setup-encryption-btn').textContent = 'Setup Encryption';
-    }
-}
 
         async function handleUnlock() {
             const passphrase = document.getElementById('unlock-passphrase').value;
@@ -893,4 +893,3 @@ async function setupEncryption() {
     </script>
 </body>
 </html>
-
