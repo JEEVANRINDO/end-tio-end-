@@ -221,7 +221,7 @@
         let libsignal = null;
         let signalLibraryLoaded = false;
 
-        // --- UPDATED LIBRARY LOADING (Using Stable 1.3.15) ---
+        // --- IMPROVED LIBRARY LOADING WITH BETTER FALLBACKS ---
         function loadSignalLibrary() {
             return new Promise((resolve, reject) => {
                 if (typeof window.libsignal !== 'undefined') {
@@ -232,32 +232,79 @@
                     return;
                 }
 
-                // Explicitly use 1.3.15 which has the browser 'dist' folder
+                // Multiple CDN fallbacks with different versions and sources
                 const cdns = [
                     'https://cdn.jsdelivr.net/npm/libsignal-protocol@1.3.15/dist/libsignal-protocol.min.js',
-                    'https://unpkg.com/libsignal-protocol@1.3.15/dist/libsignal-protocol.min.js'
+                    'https://unpkg.com/libsignal-protocol@1.3.15/dist/libsignal-protocol.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/libsignal-protocol/1.3.15/libsignal-protocol.min.js',
+                    'https://cdn.jsdelivr.net/npm/libsignal-protocol@1.2.2/dist/libsignal-protocol.min.js',
+                    'https://unpkg.com/libsignal-protocol@1.2.2/dist/libsignal-protocol.min.js',
+                    'https://cdn.jsdelivr.net/npm/libsignal-protocol@1.1.2/dist/libsignal-protocol.min.js'
                 ];
 
+                let attempts = 0;
+                const maxAttempts = cdns.length;
+
                 function tryCDN(index) {
-                    if (index >= cdns.length) {
-                        reject(new Error('All CDN attempts failed. Please check your connection.'));
+                    if (index >= maxAttempts) {
+                        // Last resort: try to use a local fallback or provide better error
+                        console.error('All CDN attempts failed');
+                        reject(new Error('Cannot load encryption library. Please check your internet connection and try again. If the problem persists, the service may be temporarily unavailable.'));
                         return;
                     }
 
-                    console.log(`Attempting to load Signal lib from: ${cdns[index]}`);
+                    attempts++;
+                    console.log(`Attempt ${attempts}/${maxAttempts}: Loading Signal lib from: ${cdns[index]}`);
+                    
                     const script = document.createElement('script');
                     script.src = cdns[index];
+                    
                     script.onload = () => {
+                        // Give it a moment to register the global variable
+                        setTimeout(() => {
+                            if (typeof window.libsignal !== 'undefined') {
+                                libsignal = window.libsignal;
+                                signalLibraryLoaded = true;
+                                console.log('Signal library loaded successfully from: ' + cdns[index]);
+                                resolve();
+                            } else {
+                                console.warn('Script loaded but libsignal not found, trying next CDN...');
+                                tryCDN(index + 1);
+                            }
+                        }, 100);
+                    };
+                    
+                    script.onerror = () => {
+                        console.warn('Failed to load from: ' + cdns[index]);
+                        tryCDN(index + 1);
+                    };
+                    
+                    // Add timeout for each attempt
+                    const timeout = setTimeout(() => {
+                        console.warn('Timeout loading from: ' + cdns[index]);
+                        document.head.removeChild(script);
+                        tryCDN(index + 1);
+                    }, 10000); // 10 second timeout per attempt
+                    
+                    script.onload = () => {
+                        clearTimeout(timeout);
                         if (typeof window.libsignal !== 'undefined') {
                             libsignal = window.libsignal;
                             signalLibraryLoaded = true;
-                            console.log('Signal library loaded successfully');
+                            console.log('Signal library loaded successfully from: ' + cdns[index]);
                             resolve();
                         } else {
+                            console.warn('Script loaded but libsignal not found, trying next CDN...');
                             tryCDN(index + 1);
                         }
                     };
-                    script.onerror = () => tryCDN(index + 1);
+                    
+                    script.onerror = () => {
+                        clearTimeout(timeout);
+                        console.warn('Failed to load from: ' + cdns[index]);
+                        tryCDN(index + 1);
+                    };
+                    
                     document.head.appendChild(script);
                 }
 
@@ -265,7 +312,10 @@
             });
         }
 
-        const libraryLoadPromise = loadSignalLibrary();
+        const libraryLoadPromise = loadSignalLibrary().catch(error => {
+            console.error('Signal library loading failed:', error);
+            // Don't throw here, we'll handle it when the library is actually needed
+        });
         
         const SECURITY_CONFIG = {
             PBKDF2_ITERATIONS: 310000,
@@ -341,7 +391,15 @@
         async function generateAndRegisterKeys(userIdentifier, store) {
             try {
                 await libraryLoadPromise;
-                if (!libsignal) throw new Error('Signal Protocol library failed to load');
+                if (!libsignal) {
+                    // Try one more time to check if library loaded
+                    if (typeof window.libsignal !== 'undefined') {
+                        libsignal = window.libsignal;
+                        signalLibraryLoaded = true;
+                    } else {
+                        throw new Error('Signal Protocol library failed to load. Please refresh the page and try again.');
+                    }
+                }
 
                 const registrationId = libsignal.KeyHelper.generateRegistrationId();
                 store.setRegistrationId(registrationId);
@@ -736,10 +794,15 @@
                 document.getElementById('setup-encryption-btn').disabled = true;
                 document.getElementById('setup-encryption-btn').textContent = 'Loading library...';
                 
-                await libraryLoadPromise;
+                // Wait for library to load with better error handling
+                try {
+                    await libraryLoadPromise;
+                } catch (loadError) {
+                    throw new Error('Failed to load encryption library. Please check your internet connection and refresh the page.');
+                }
                 
                 if (!libsignal) {
-                    throw new Error('Signal Protocol library not loaded');
+                    throw new Error('Signal Protocol library not loaded. Please refresh the page and try again.');
                 }
                 
                 document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
@@ -792,7 +855,14 @@
             const messageText = messageInput.value.trim();
             if (!messageText || !currentUser) return;
             try {
-                await libraryLoadPromise;
+                // Check if library is loaded
+                if (!libsignal) {
+                    await libraryLoadPromise;
+                    if (!libsignal) {
+                        throw new Error('Encryption library not available');
+                    }
+                }
+                
                 const messageId = generateMessageId();
                 const usersSnapshot = await db.collection('users').get();
                 const encryptedMessages = [];
@@ -840,7 +910,14 @@
                         const userMessage = message.encryptedMessages.find(msg => msg.userId === currentUser.uid);
                         if (userMessage) {
                             try {
-                                await libraryLoadPromise;
+                                // Ensure library is loaded
+                                if (!libsignal) {
+                                    await libraryLoadPromise;
+                                    if (!libsignal) {
+                                        throw new Error('Encryption library not available');
+                                    }
+                                }
+                                
                                 const ciphertext = JSON.parse(userMessage.encryptedMessage);
                                 const ciphertextMessage = { type: ciphertext.type, body: base64ToArrayBuffer(ciphertext.body) };
                                 const decryptionResult = await receiveAndDecryptMessage(message.senderId, ciphertextMessage, signalStore);
