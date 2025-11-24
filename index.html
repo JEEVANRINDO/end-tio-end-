@@ -200,635 +200,346 @@
         </div>
     </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBCix7_qzRM8dSopBef0ORyFjvssjV32Lc",
-            authDomain: "messaging-app-1bd04.firebaseapp.com",
-            projectId: "messaging-app-1bd04",
-            storageBucket: "messaging-app-1bd04.firebasestorage.app",
-            messagingSenderId: "443693550918",
-            appId: "1:443693550918:web:62cb22ffd4056014822947",
-            measurementId: "G-P9EWYXGNV2"
+<script>
+    // Firebase configuration (keep your existing config)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBCix7_qzRM8dSopBef0ORyFjvssjV32Lc",
+        authDomain: "messaging-app-1bd04.firebaseapp.com",
+        projectId: "messaging-app-1bd04",
+        storageBucket: "messaging-app-1bd04.firebasestorage.app",
+        messagingSenderId: "443693550918",
+        appId: "1:443693550918:web:62cb22ffd4056014822947",
+        measurementId: "G-P9EWYXGNV2"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Encryption and App State Management
+    let currentUser = null;
+    let userDisplayName = '';
+    let encryptionKeys = {}; // Stores the user's key pair locally
+
+    // Security Configuration
+    const SECURITY_CONFIG = {
+        PBKDF2_ITERATIONS: 310000,
+        KEY_ALGORITHM: { name: 'AES-GCM', length: 256 },
+        KEY_WRAPPING_ALGORITHM: 'AES-GCM',
+        MESSAGE_IV_LENGTH: 12,
+        SALT_LENGTH: 16
+    };
+
+    // --- Core Crypto Functions (Web Crypto API) ---
+
+    /**
+     * Generates a master encryption key for the user.
+     * This key is derived from their passphrase and is used to wrap/unwrap their actual data key.
+     */
+    async function deriveMasterKey(passphrase, salt) {
+        const enc = new TextEncoder();
+        const passphraseKey = await window.crypto.subtle.importKey(
+            'raw',
+            enc.encode(passphrase),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+        );
+
+        return await window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: salt,
+                iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS,
+                hash: 'SHA-256'
+            },
+            passphraseKey,
+            SECURITY_CONFIG.KEY_ALGORITHM,
+            false, // Not extractable - crucial for security
+            ['encrypt', 'decrypt']
+        );
+    }
+
+    /**
+     * Generates a new data key used for encrypting/decrypting chat messages.
+     */
+    async function generateDataKey() {
+        return await window.crypto.subtle.generateKey(
+            SECURITY_CONFIG.KEY_ALGORITHM,
+            true, // This key IS extractable, so we can wrap it for storage
+            ['encrypt', 'decrypt']
+        );
+    }
+
+    /**
+     * Wraps (encrypts) the data key using the master key for secure storage.
+     */
+    async function wrapDataKey(dataKey, masterKey) {
+        const iv = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.MESSAGE_IV_LENGTH));
+        const exportedDataKey = await window.crypto.subtle.exportKey('raw', dataKey);
+        const wrapped = await window.crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv: iv },
+            masterKey,
+            exportedDataKey
+        );
+        return {
+            wrappedKey: new Uint8Array(wrapped),
+            iv: iv
         };
+    }
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+    /**
+     * Unwraps (decrypts) the data key using the master key.
+     */
+    async function unwrapDataKey(wrappedBundle, masterKey) {
+        const decrypted = await window.crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: wrappedBundle.iv },
+            masterKey,
+            wrappedBundle.wrappedKey
+        );
+        return await window.crypto.subtle.importKey(
+            'raw',
+            decrypted,
+            SECURITY_CONFIG.KEY_ALGORITHM,
+            true,
+            ['encrypt', 'decrypt']
+        );
+    }
 
-        let libsignal = null;
-        let signalLibraryLoaded = false;
-
-        function loadSignalLibrary() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.libsignal !== 'undefined') {
-                    libsignal = window.libsignal;
-                    signalLibraryLoaded = true;
-                    console.log('Signal library already loaded');
-                    resolve();
-                    return;
-                }
-
-                const cdns = [
-                    'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js',
-                    'https://unpkg.com/@privacyresearch/libsignal-protocol-typescript@0.2.2/dist/libsignal-protocol.min.js',
-                    'https://cdn.jsdelivr.net/npm/@privacyresearch/libsignal-protocol-typescript@0.1.0/dist/libsignal-protocol.min.js'
-                ];
-
-                function tryCDN(index) {
-                    if (index >= cdns.length) {
-                        reject(new Error('All CDN attempts failed. Please check your internet connection.'));
-                        return;
-                    }
-
-                    const script = document.createElement('script');
-                    script.src = cdns[index];
-                    script.onload = () => {
-                        if (typeof window.libsignal !== 'undefined') {
-                            libsignal = window.libsignal;
-                            signalLibraryLoaded = true;
-                            console.log('Signal library loaded from CDN ' + (index + 1));
-                            resolve();
-                        } else {
-                            tryCDN(index + 1);
-                        }
-                    };
-                    script.onerror = () => {
-                        tryCDN(index + 1);
-                    };
-                    document.head.appendChild(script);
-                }
-
-                tryCDN(0);
-            });
-        }
-
-        const libraryLoadPromise = loadSignalLibrary();
-
-        const SECURITY_CONFIG = {
-            PBKDF2_ITERATIONS: 310000,
-            KEY_WRAPPING_ALGORITHM: 'AES-GCM',
-            KEY_LENGTH: 256,
-            MESSAGE_IV_LENGTH: 12,
-            SALT_LENGTH: 16,
-            MAX_MESSAGE_AGE: 7 * 24 * 60 * 60 * 1000,
-            MAX_CACHED_MESSAGES: 1000,
-            PRE_KEY_AMOUNT: 100
+    /**
+     * Encrypts a message string using the current data key.
+     */
+    async function encryptMessage(message, dataKey) {
+        const enc = new TextEncoder();
+        const iv = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.MESSAGE_IV_LENGTH));
+        const encrypted = await window.crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv: iv },
+            dataKey,
+            enc.encode(message)
+        );
+        return {
+            ciphertext: new Uint8Array(encrypted),
+            iv: iv
         };
+    }
 
-        class SignalProtocolStore {
-            constructor() {
-                this._store = {};
-                this.verifiedIdentityKeys = new Map();
-            }
-
-            getIdentityKeyPair() { return this._getItem('identityKey'); }
-            setIdentityKeyPair(keyPair) { return this._setItem('identityKey', keyPair); }
-            getPreKey(keyId) { return this._getItem(`preKey${keyId}`); }
-            storePreKey(keyId, keyPair) { return this._setItem(`preKey${keyId}`, keyPair); }
-            removePreKey(keyId) { return this._removeItem(`preKey${keyId}`); }
-            getSignedPreKey(keyId) { return this._getItem(`signedPreKey${keyId}`); }
-            storeSignedPreKey(keyId, keyPair) { return this._setItem(`signedPreKey${keyId}`, keyPair); }
-            removeSignedPreKey(keyId) { return this._removeItem(`signedPreKey${keyId}`); }
-            loadSession(identifier) { return this._getItem(`session${identifier}`); }
-            storeSession(identifier, record) { return this._setItem(`session${identifier}`, record); }
-            getRegistrationId() { return this._getItem('registrationId'); }
-            setRegistrationId(registrationId) { return this._setItem('registrationId', registrationId); }
-
-            saveVerifiedIdentityKey(address, identityKey) {
-                const key = `${address.getName()}.${address.getDeviceId()}`;
-                this.verifiedIdentityKeys.set(key, identityKey);
-                this._setItem(`verifiedIdentity_${key}`, identityKey);
-            }
-
-            isIdentityVerified(address, identityKey) {
-                const key = `${address.getName()}.${address.getDeviceId()}`;
-                const savedKey = this.verifiedIdentityKeys.get(key) || this._getItem(`verifiedIdentity_${key}`);
-                if (!savedKey) return false;
-                return arrayBufferToBase64(savedKey) === arrayBufferToBase64(identityKey);
-            }
-
-            isSessionValid(address) {
-                const session = this.loadSession(address.toString());
-                return !!(session && session.currentRatchet && session.currentRatchet.ephemeralKeyPair);
-            }
-
-            _getItem(key) { return this._store[key]; }
-            _setItem(key, value) { this._store[key] = value; }
-            _removeItem(key) { delete this._store[key]; }
-
-            toObject() {
-                return {
-                    store: this._store,
-                    verifiedIdentityKeys: Array.from(this.verifiedIdentityKeys.entries())
-                };
-            }
-
-            fromObject(obj) {
-                this._store = obj.store || {};
-                this.verifiedIdentityKeys = new Map(obj.verifiedIdentityKeys || []);
-            }
+    /**
+     * Decrypts a message using the current data key.
+     */
+    async function decryptMessage(encryptedMessage, dataKey) {
+        try {
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: encryptedMessage.iv },
+                dataKey,
+                encryptedMessage.ciphertext
+            );
+            const dec = new TextDecoder();
+            return dec.decode(decrypted);
+        } catch (error) {
+            throw new Error('Failed to decrypt message: The key is likely incorrect or the data is corrupted.');
         }
+    }
 
-        let currentUser = null;
-        let userDisplayName = '';
-        let signalStore = new SignalProtocolStore();
-        let verifiedUsers = new Map();
-        let messageCache = new Map();
+    // --- Key Storage and Management (using IndexedDB) ---
 
-        async function generateAndRegisterKeys(userIdentifier, store) {
-            try {
-                await libraryLoadPromise;
-                
-                if (!libsignal) {
-                    throw new Error('Signal Protocol library failed to load');
+    /**
+     * Saves the wrapped keys to the browser's local IndexedDB.
+     */
+    async function saveWrappedKeys(userId, wrappedBundle) {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('SecureChatKeys', 1);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const tx = db.transaction('keys', 'readwrite');
+                const store = tx.objectStore('keys');
+                const putRequest = store.put({
+                    id: userId,
+                    wrappedBundle: wrappedBundle,
+                    createdAt: Date.now()
+                });
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('keys')) {
+                    db.createObjectStore('keys', { keyPath: 'id' });
                 }
-
-                const registrationId = libsignal.KeyHelper.generateRegistrationId();
-                store.setRegistrationId(registrationId);
-
-                const identityKeyPair = await libsignal.KeyHelper.generateIdentityKeyPair();
-                store.setIdentityKeyPair(identityKeyPair);
-
-                const signedPreKeyId = 1;
-                const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId);
-                store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair);
-
-                const oneTimePreKeys = [];
-                for (let i = 0; i < SECURITY_CONFIG.PRE_KEY_AMOUNT; ++i) {
-                    const preKeyId = i + 1;
-                    const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId);
-                    store.storePreKey(preKeyId, preKey.keyPair);
-                    const publicPreKey = {
-                        keyId: preKey.keyId,
-                        publicKey: preKey.keyPair.pubKey
-                    };
-                    oneTimePreKeys.push(publicPreKey);
-                }
-
-                const publicSignedPreKey = {
-                    keyId: signedPreKeyId,
-                    publicKey: signedPreKey.keyPair.pubKey,
-                    signature: signedPreKey.signature
-                };
-
-                const userKeyBundle = {
-                    registrationId: registrationId,
-                    identityPubKey: identityKeyPair.pubKey,
-                    signedPreKey: publicSignedPreKey,
-                    oneTimePreKeys: oneTimePreKeys,
-                    securityCode: await generateSecurityCode(identityKeyPair.pubKey)
-                };
-
-                const userRef = db.collection('users').doc(userIdentifier);
-                await userRef.set({
-                    keyBundle: userKeyBundle,
-                    displayName: userDisplayName,
-                    securityCode: userKeyBundle.securityCode,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                    keyVersion: 1,
-                    keyBundleUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                return userKeyBundle;
-
-            } catch (error) {
-                throw new Error(`Failed to generate encryption keys: ${error.message}`);
-            }
-        }
-
-        async function startSessionAndSendMessage(recipientId, messageText, store) {
-            try {
-                const recipientDoc = await db.collection('users').doc(recipientId).get();
-                if (!recipientDoc.exists) throw new Error('Recipient not found');
-                const recipientBundle = recipientDoc.data().keyBundle;
-                if (!recipientBundle) throw new Error('Recipient has no key bundle');
-
-                await verifyRecipientBundleBeforeSession(recipientId, recipientBundle);
-
-                const recipientAddress = new libsignal.SignalProtocolAddress(recipientId, 1);
-                const sessionBuilder = new libsignal.SessionBuilder(store, recipientAddress);
-                await sessionBuilder.processPreKey(recipientBundle);
-
-                store.saveVerifiedIdentityKey(recipientAddress, recipientBundle.identityPubKey);
-
-                const sessionCipher = new libsignal.SessionCipher(store, recipientAddress);
-                const plaintext = new TextEncoder().encode(messageText).buffer;
-                const ciphertext = await sessionCipher.encrypt(plaintext);
-
-                return {
-                    recipientId: recipientId,
-                    ciphertext: ciphertext,
-                    type: ciphertext.type,
-                    sessionValid: true
-                };
-            } catch (error) {
-                throw error;
-            }
-        }
-
-        async function verifyRecipientBundleBeforeSession(recipientId, recipientBundle) {
-            const verifiedUser = verifiedUsers.get(recipientId);
-            if (!verifiedUser) throw new Error(`Security alert: User ${recipientId} is not verified`);
-
-            const computedCode = await generateSecurityCode(recipientBundle.identityPubKey);
-            if (computedCode !== verifiedUser.securityCode) throw new Error(`SECURITY ALERT: Identity key mismatch for ${recipientId}`);
-
-            return true;
-        }
-
-        async function receiveAndDecryptMessage(senderId, ciphertextMessage, store) {
-            try {
-                const senderAddress = new libsignal.SignalProtocolAddress(senderId, 1);
-                const sessionCipher = new libsignal.SessionCipher(store, senderAddress);
-
-                let plaintextArrayBuffer;
-                let sessionSafety = {
-                    hasValidSession: store.isSessionValid(senderAddress),
-                    identityVerified: false,
-                    decryptionSuccess: false
-                };
-
-                if (ciphertextMessage.type === 3) {
-                    plaintextArrayBuffer = await sessionCipher.decryptPreKeyWhisperMessage(ciphertextMessage.body, 'binary');
-                    sessionSafety.decryptionSuccess = true;
-                    const session = store.loadSession(senderAddress.toString());
-                    if (session && session.remoteIdentityKey) sessionSafety.identityVerified = store.isIdentityVerified(senderAddress, session.remoteIdentityKey);
-                } else if (ciphertextMessage.type === 1) {
-                    plaintextArrayBuffer = await sessionCipher.decryptWhisperMessage(ciphertextMessage.body, 'binary');
-                    sessionSafety.decryptionSuccess = true;
-                    sessionSafety.hasValidSession = store.isSessionValid(senderAddress);
-                    const session = store.loadSession(senderAddress.toString());
-                    if (session && session.remoteIdentityKey) sessionSafety.identityVerified = store.isIdentityVerified(senderAddress, session.remoteIdentityKey);
-                } else throw new Error('Unknown message type: ' + ciphertextMessage.type);
-
-                const plaintext = new TextDecoder().decode(new Uint8Array(plaintextArrayBuffer));
-                return { plaintext: plaintext, sessionSafety: sessionSafety };
-            } catch (error) {
-                throw error;
-            }
-        }
-
-        async function generateSecurityCode(publicKey) {
-            const hash = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(arrayBufferToBase64(publicKey)));
-            const hashArray = Array.from(new Uint8Array(hash));
-            return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-        }
-
-        async function deriveWrappingKey(passphrase, salt) {
-            const enc = new TextEncoder();
-            const pass = enc.encode(passphrase);
-            const keyMaterial = await window.crypto.subtle.importKey("raw", pass, { name: "PBKDF2" }, false, ["deriveKey"]);
-            return await window.crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: SECURITY_CONFIG.KEY_LENGTH }, false, ["encrypt", "decrypt"]);
-        }
-
-        async function wrapStore(store, passphrase) {
-            const storeObj = store.toObject();
-            const storeString = JSON.stringify(storeObj);
-            const salt = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.SALT_LENGTH));
-            const wrappingKey = await deriveWrappingKey(passphrase, salt);
-            const iv = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.MESSAGE_IV_LENGTH));
-            const ciphertext = await window.crypto.subtle.encrypt({ name: SECURITY_CONFIG.KEY_WRAPPING_ALGORITHM, iv: iv }, wrappingKey, new TextEncoder().encode(storeString));
-            return { ciphertext: arrayBufferToBase64(ciphertext), iv: arrayBufferToBase64(iv), salt: arrayBufferToBase64(salt), iterations: SECURITY_CONFIG.PBKDF2_ITERATIONS, version: 1 };
-        }
-
-        async function unwrapStore(wrappedBundle, passphrase) {
-            try {
-                const wrappingKey = await deriveWrappingKey(passphrase, base64ToArrayBuffer(wrappedBundle.salt));
-                const ciphertext = base64ToArrayBuffer(wrappedBundle.ciphertext);
-                const iv = base64ToArrayBuffer(wrappedBundle.iv);
-                const decrypted = await window.crypto.subtle.decrypt({ name: SECURITY_CONFIG.KEY_WRAPPING_ALGORITHM, iv: iv }, wrappingKey, ciphertext);
-                const storeString = new TextDecoder().decode(decrypted);
-                return JSON.parse(storeString);
-            } catch (error) {
-                throw new Error('Failed to unwrap store: ' + error.message);
-            }
-        }
-
-        async function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('SecureChatSignalStore', 4);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('signalStore')) db.createObjectStore('signalStore', { keyPath: 'id' });
-                };
-            });
-        }
-
-        async function storeWrappedKeys(wrappedBundle) {
-            try {
-                const db = await openDB();
-                const tx = db.transaction('signalStore', 'readwrite');
-                await tx.objectStore('signalStore').put({ id: 'signalStore', ...wrappedBundle, createdAt: Date.now() });
-            } catch (error) {
-                throw error;
-            }
-        }
-
-        async function loadWrappedKeys() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction('signalStore', 'readonly');
-                const wrappedBundle = await tx.objectStore('signalStore').get('signalStore');
-                return wrappedBundle || null;
-            } catch (error) {
-                return null;
-            }
-        }
-
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-            return btoa(binary);
-        }
-
-        function base64ToArrayBuffer(base64) {
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            return bytes.buffer;
-        }
-
-        function generateMessageId() {
-            return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-
-        function isReplayAttack(messageId, timestamp) {
-            if (Date.now() - timestamp > SECURITY_CONFIG.MAX_MESSAGE_AGE) return true;
-            if (messageCache.has(messageId)) return true;
-            messageCache.set(messageId, timestamp);
-            if (messageCache.size > SECURITY_CONFIG.MAX_CACHED_MESSAGES) {
-                const oldestEntries = Array.from(messageCache.entries()).sort((a, b) => a[1] - b[1]).slice(0, messageCache.size - SECURITY_CONFIG.MAX_CACHED_MESSAGES);
-                oldestEntries.forEach(([id]) => messageCache.delete(id));
-            }
-            return false;
-        }
-
-        async function initializeKeyVerification() {
-            const identityKeyPair = signalStore.getIdentityKeyPair();
-            if (!identityKeyPair) throw new Error('No identity key pair found');
-            const securityCode = await generateSecurityCode(identityKeyPair.pubKey);
-            verifiedUsers.set(currentUser.uid, { publicKey: identityKeyPair.pubKey, securityCode: securityCode, verifiedAt: Date.now(), isCurrentUser: true });
-            await loadVerifiedUsers();
-            return securityCode;
-        }
-
-        async function loadVerifiedUsers() {
-            try {
-                const stored = localStorage.getItem(`verifiedUsers_${currentUser.uid}`);
-                if (stored) verifiedUsers = new Map(JSON.parse(stored));
-            } catch (error) {}
-        }
-
-        async function saveVerifiedUsers() {
-            try {
-                const data = Array.from(verifiedUsers.entries());
-                localStorage.setItem(`verifiedUsers_${currentUser.uid}`, JSON.stringify(data));
-            } catch (error) {}
-        }
-
-        async function verifyUserSecurityCode(userId, securityCode) {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (!userDoc.exists) return false;
-            const userData = userDoc.data();
-            if (!userData.keyBundle) return false;
-            const computedCode = await generateSecurityCode(userData.keyBundle.identityPubKey);
-            if (computedCode === securityCode) {
-                verifiedUsers.set(userId, { publicKey: userData.keyBundle.identityPubKey, securityCode: computedCode, verifiedAt: Date.now() });
-                await saveVerifiedUsers();
-                return true;
-            }
-            return false;
-        }
-
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-        }
-
-        function showError(elementId, message) {
-            const element = document.getElementById(elementId);
-            element.textContent = message;
-            element.style.display = 'block';
-        }
-
-        function hideError(elementId) {
-            const element = document.getElementById(elementId);
-            element.style.display = 'none';
-        }
-
-        async function signUp() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            try {
-                hideError('auth-error');
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                userDisplayName = email.split('@')[0];
-                showScreen('passphrase-screen');
-            } catch (error) {
-                showError('auth-error', error.message);
-            }
-        }
-
-        async function signIn() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            try {
-                hideError('auth-error');
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                const wrappedKeys = await loadWrappedKeys();
-                if (wrappedKeys) showScreen('unlock-screen');
-                else { userDisplayName = email.split('@')[0]; showScreen('passphrase-screen'); }
-            } catch (error) {
-                showError('auth-error', error.message);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('signup-btn').addEventListener('click', signUp);
-            document.getElementById('signin-btn').addEventListener('click', signIn);
-            document.getElementById('setup-encryption-btn').addEventListener('click', setupEncryption);
-            document.getElementById('unlock-btn').addEventListener('click', handleUnlock);
-            document.getElementById('complete-verification-btn').addEventListener('click', completeVerification);
-            document.getElementById('skip-verification-btn').addEventListener('click', () => showScreen('chat-screen'));
-            document.getElementById('security-info-btn').addEventListener('click', showSecurityInfo);
-            document.getElementById('close-security-modal').addEventListener('click', closeSecurityModal);
-            document.getElementById('logout-btn').addEventListener('click', signOut);
-            document.getElementById('send-btn').addEventListener('click', sendMessage);
-            document.getElementById('message-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
-            auth.onAuthStateChanged((user) => { if (!user) showScreen('auth-screen'); });
-            setupMessageListener();
+            };
         });
+    }
 
-        async function setupEncryption() {
-            const passphrase = document.getElementById('passphrase').value;
-            const confirmPassphrase = document.getElementById('passphrase-confirm').value;
-            if (!passphrase || passphrase.length < 8) { alert('Passphrase must be at least 8 characters long'); return; }
-            if (passphrase !== confirmPassphrase) { alert('Passphrases do not match'); return; }
-            try {
-                document.getElementById('setup-encryption-btn').disabled = true;
-                document.getElementById('setup-encryption-btn').textContent = 'Loading library...';
-                
-                await libraryLoadPromise;
-                
-                if (!libsignal) {
-                    throw new Error('Signal Protocol library not loaded');
-                }
-                
-                document.getElementById('setup-encryption-btn').textContent = 'Generating keys...';
-                await generateAndRegisterKeys(currentUser.uid, signalStore);
-                const wrappedBundle = await wrapStore(signalStore, passphrase);
-                await storeWrappedKeys(wrappedBundle);
-                const securityCode = await initializeKeyVerification();
-                document.getElementById('user-security-code').textContent = securityCode;
-                QRCode.toCanvas(document.getElementById('qr-code-container'), securityCode, function (error) { if (error) console.error('QR code generation error:', error); });
-                showScreen('verification-screen');
-            } catch (error) {
-                alert('Error setting up encryption: ' + error.message);
-                document.getElementById('setup-encryption-btn').disabled = false;
-                document.getElementById('setup-encryption-btn').textContent = 'Setup Encryption';
-            }
+    /**
+     * Loads the wrapped keys from IndexedDB.
+     */
+    async function loadWrappedKeys(userId) {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('SecureChatKeys', 1);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const tx = db.transaction('keys', 'readonly');
+                const store = tx.objectStore('keys');
+                const getRequest = store.get(userId);
+                getRequest.onsuccess = () => resolve(getRequest.result ? getRequest.result.wrappedBundle : null);
+                getRequest.onerror = () => reject(getRequest.error);
+            };
+        });
+    }
+
+    // --- Encryption Setup and Unlock Flow ---
+
+    /**
+     * The main function to set up a user's encryption system.
+     * Called when a new account is created.
+     */
+    async function setupEncryption() {
+        const passphrase = document.getElementById('passphrase').value;
+        const confirmPassphrase = document.getElementById('passphrase-confirm').value;
+
+        // Basic validation
+        if (!passphrase || passphrase.length < 8) {
+            alert('Passphrase must be at least 8 characters long');
+            return;
+        }
+        if (passphrase !== confirmPassphrase) {
+            alert('Passphrases do not match');
+            return;
         }
 
-        async function handleUnlock() {
-            const passphrase = document.getElementById('unlock-passphrase').value;
-            if (!passphrase) { showError('unlock-error', 'Please enter your passphrase'); return; }
-            try {
-                document.getElementById('unlock-btn').disabled = true;
-                document.getElementById('unlock-btn').textContent = 'Unlocking...';
-                const wrappedBundle = await loadWrappedKeys();
-                if (!wrappedBundle) throw new Error('No encrypted keys found');
-                const storeObj = await unwrapStore(wrappedBundle, passphrase);
-                signalStore.fromObject(storeObj);
-                await initializeKeyVerification();
-                showScreen('chat-screen');
-            } catch (error) {
-                showError('unlock-error', 'Invalid passphrase or corrupted keys');
-                document.getElementById('unlock-btn').disabled = false;
-                document.getElementById('unlock-btn').textContent = 'Unlock';
+        try {
+            document.getElementById('setup-encryption-btn').disabled = true;
+            document.getElementById('setup-encryption-btn').textContent = 'Setting Up Encryption...';
+
+            // 1. Generate a random salt
+            const salt = window.crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.SALT_LENGTH));
+            
+            // 2. Derive a master key from the passphrase
+            const masterKey = await deriveMasterKey(passphrase, salt);
+            
+            // 3. Generate a new data key for message encryption
+            const dataKey = await generateDataKey();
+            
+            // 4. Wrap the data key with the master key for storage
+            const wrappedBundle = await wrapDataKey(dataKey, masterKey);
+            // Add the salt to the bundle for storage
+            const storageBundle = {
+                wrappedKey: Array.from(wrappedBundle.wrappedKey),
+                iv: Array.from(wrappedBundle.iv),
+                salt: Array.from(salt)
+            };
+
+            // 5. Save the wrapped bundle to IndexedDB
+            await saveWrappedKeys(currentUser.uid, storageBundle);
+
+            // 6. Store the data key in memory for immediate use
+            encryptionKeys.dataKey = dataKey;
+
+            // 7. Generate and display a security code for verification
+            const securityCode = await generateSecurityCode(dataKey);
+            document.getElementById('user-security-code').textContent = securityCode;
+
+            // Generate QR code if the library is available
+            if (typeof QRCode !== 'undefined') {
+                QRCode.toCanvas(document.getElementById('qr-code-container'), securityCode, function(error) {
+                    if (error) console.error('QR code generation error:', error);
+                });
             }
+
+            showScreen('verification-screen');
+
+        } catch (error) {
+            console.error('Encryption setup error:', error);
+            alert('Error setting up encryption: ' + error.message);
+        } finally {
+            document.getElementById('setup-encryption-btn').disabled = false;
+            document.getElementById('setup-encryption-btn').textContent = 'Setup Encryption';
+        }
+    }
+
+    /**
+     * Unlocks the user's encryption system using their passphrase.
+     * Called when an existing user signs in.
+     */
+    async function handleUnlock() {
+        const passphrase = document.getElementById('unlock-passphrase').value;
+        if (!passphrase) {
+            showError('unlock-error', 'Please enter your passphrase');
+            return;
         }
 
-        async function completeVerification() {
-            const checkboxes = document.querySelectorAll('.verify-checkbox:checked');
-            for (const checkbox of checkboxes) await verifyUserSecurityCode(checkbox.dataset.userid, checkbox.dataset.securitycode);
-            await saveVerifiedUsers();
+        try {
+            document.getElementById('unlock-btn').disabled = true;
+            document.getElementById('unlock-btn').textContent = 'Unlocking...';
+
+            // 1. Load the wrapped bundle from storage
+            const storageBundle = await loadWrappedKeys(currentUser.uid);
+            if (!storageBundle) {
+                throw new Error('No encrypted keys found for this user.');
+            }
+
+            // Convert arrays back to Uint8Arrays
+            const wrappedBundle = {
+                wrappedKey: new Uint8Array(storageBundle.wrappedKey),
+                iv: new Uint8Array(storageBundle.iv)
+            };
+            const salt = new Uint8Array(storageBundle.salt);
+
+            // 2. Re-derive the master key from the passphrase
+            const masterKey = await deriveMasterKey(passphrase, salt);
+            
+            // 3. Unwrap the data key
+            const dataKey = await unwrapDataKey(wrappedBundle, masterKey);
+            
+            // 4. Store the data key in memory for use
+            encryptionKeys.dataKey = dataKey;
+
             showScreen('chat-screen');
-        }
 
-        function showSecurityInfo() { document.getElementById('security-modal').classList.add('active'); }
-        function closeSecurityModal() { document.getElementById('security-modal').classList.remove('active'); }
-        async function signOut() { try { await auth.signOut(); showScreen('auth-screen'); } catch (error) {} }
-
-        async function sendMessage() {
-            const messageInput = document.getElementById('message-input');
-            const messageText = messageInput.value.trim();
-            if (!messageText || !currentUser) return;
-            try {
-                await libraryLoadPromise;
-                const messageId = generateMessageId();
-                const usersSnapshot = await db.collection('users').get();
-                const encryptedMessages = [];
-                for (const userDoc of usersSnapshot.docs) {
-                    if (userDoc.id === currentUser.uid) continue;
-                    try {
-                        let encryptedResult;
-                        const recipientAddress = new libsignal.SignalProtocolAddress(userDoc.id, 1);
-                        const sessionCipher = new libsignal.SessionCipher(signalStore, recipientAddress);
-                        const plaintext = new TextEncoder().encode(messageText).buffer;
-                        encryptedResult = await sessionCipher.encrypt(plaintext);
-                        encryptedMessages.push({ userId: userDoc.id, encryptedMessage: JSON.stringify({ type: encryptedResult.type, body: arrayBufferToBase64(encryptedResult.body) }) });
-                    } catch (sessionError) {
-                        try {
-                            encryptedResult = await startSessionAndSendMessage(userDoc.id, messageText, signalStore);
-                            encryptedMessages.push({ userId: userDoc.id, encryptedMessage: JSON.stringify({ type: encryptedResult.ciphertext.type, body: arrayBufferToBase64(encryptedResult.ciphertext.body) }) });
-                        } catch (startSessionError) {
-                            displaySecurityWarning(`Cannot send to ${userDoc.data().displayName}: ${startSessionError.message}`);
-                        }
-                    }
-                }
-                if (encryptedMessages.length > 0) {
-                    await db.collection('messages').add({
-                        encryptedMessages: encryptedMessages,
-                        senderId: currentUser.uid,
-                        senderName: userDisplayName,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        messageId: messageId,
-                        type: 'text'
-                    });
-                }
-                displayMessage(messageText, currentUser.uid, true, { level: 'verified', text: '✅ Sent securely' });
-                messageInput.value = '';
-                document.getElementById('char-count').textContent = '0';
-            } catch (error) {
-                alert('Error sending message: ' + error.message);
-            }
+        } catch (error) {
+            console.error('Unlock error:', error);
+            showError('unlock-error', 'Invalid passphrase or corrupted keys. Please try again.');
+        } finally {
+            document.getElementById('unlock-btn').disabled = false;
+            document.getElementById('unlock-btn').textContent = 'Unlock';
         }
+    }
 
-        function setupMessageListener() {
-            db.collection('messages').orderBy('timestamp', 'asc').onSnapshot(async (snapshot) => {
-                for (const change of snapshot.docChanges()) {
-                    if (change.type === 'added') {
-                        const message = change.doc.data();
-                        const userMessage = message.encryptedMessages.find(msg => msg.userId === currentUser.uid);
-                        if (userMessage) {
-                            try {
-                                await libraryLoadPromise;
-                                const ciphertext = JSON.parse(userMessage.encryptedMessage);
-                                const ciphertextMessage = { type: ciphertext.type, body: base64ToArrayBuffer(ciphertext.body) };
-                                const decryptionResult = await receiveAndDecryptMessage(message.senderId, ciphertextMessage, signalStore);
-                                if (!isReplayAttack(message.messageId, message.timestamp.toMillis())) {
-                                    const verificationStatus = getMessageVerificationStatus(decryptionResult.sessionSafety, message.senderId);
-                                    displayMessage(decryptionResult.plaintext, message.senderId, false, verificationStatus);
-                                }
-                            } catch (error) {
-                                displayMessage('🔒 [Encrypted message - decryption failed]', message.senderId, false, { level: 'error', text: '🔴 Decryption failed', description: error.message });
-                            }
-                        }
-                    }
-                }
-            });
-        }
+    /**
+     * Generates a readable security code from a crypto key.
+     * Used for user verification.
+     */
+    async function generateSecurityCode(key) {
+        const exported = await window.crypto.subtle.exportKey('raw', key);
+        const hash = await window.crypto.subtle.digest('SHA-256', exported);
+        const hashArray = Array.from(new Uint8Array(hash));
+        return hashArray.slice(0, 6).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
 
-        function getMessageVerificationStatus(sessionSafety, senderId) {
-            const verifiedUser = verifiedUsers.get(senderId);
-            if (!sessionSafety.decryptionSuccess) return { level: 'error', text: '🔴 Decryption failed', description: 'Message could not be decrypted' };
-            if (sessionSafety.hasValidSession && sessionSafety.identityVerified) return { level: 'verified', text: '✅ Verified contact', description: 'Encrypted and authenticated via secure session' };
-            if (verifiedUser) return { level: 'verified', text: '✅ Verified contact', description: 'Security code verified' };
-            if (sessionSafety.decryptionSuccess) return { level: 'unverified', text: '⚠️ Unverified contact', description: 'Message decrypted but sender identity not verified' };
-            return { level: 'unknown', text: '❓ Unknown security status', description: 'Unable to verify message authenticity' };
-        }
+    // --- UI Helper Functions ---
 
-        function displayMessage(text, senderId, isSent, verificationStatus) {
-            const messagesContainer = document.getElementById('messages-container');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-            const messageContent = document.createElement('div');
-            messageContent.textContent = text;
-            messageDiv.appendChild(messageContent);
-            const securityDiv = document.createElement('div');
-            securityDiv.className = `message-${verificationStatus.level}`;
-            securityDiv.textContent = verificationStatus.text;
-            securityDiv.title = verificationStatus.description;
-            messageDiv.appendChild(securityDiv);
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
 
-        function displaySecurityWarning(message) {
-            const messagesContainer = document.getElementById('messages-container');
-            const warningDiv = document.createElement('div');
-            warningDiv.className = 'security-indicator security-warning';
-            warningDiv.textContent = `⚠️ SECURITY WARNING: ${message}`;
-            messagesContainer.appendChild(warningDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+    function showError(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.textContent = message;
+        element.style.display = 'block';
+    }
+
+    // --- Event Listeners for Authentication Flow ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (your existing auth event listeners) ...
+        document.getElementById('setup-encryption-btn').addEventListener('click', setupEncryption);
+        document.getElementById('unlock-btn').addEventListener('click', handleUnlock);
+    });
+
+    // Note: The sendMessage and message decryption logic would need to be updated
+    // to use the new encryptMessage and decryptMessage functions.
+</script>
+
